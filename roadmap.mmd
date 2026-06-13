@@ -1,0 +1,82 @@
+graph TD
+    %% Style Definitions (Dr. Stone Style)
+    classDef rawMaterial fill:#e6dfcf,stroke:#8c7b65,stroke-width:2px,color:#000,font-weight:bold;
+    classDef labor fill:#eaeaea,stroke:#777777,stroke-dasharray: 5 5,stroke-width:2px,color:#333;
+    classDef intermediate fill:#d1e8e2,stroke:#116466,stroke-width:2px,color:#000;
+    classDef checkpoint fill:#ffcb12,stroke:#cc9900,stroke-width:3px,color:#000,font-weight:bold;
+    classDef ultimate fill:#ff4b4b,stroke:#990000,stroke-width:3px,color:#fff,font-weight:bold;
+
+    %% --- PHASE 1: THE FOUNDRY ---
+    A1[Raw Math: Cartesian Coordinates]:::rawMaterial
+    A2[IDE: Visual Studio / CLion]:::rawMaterial
+    A3[Media Tool: SFML Library]:::rawMaterial
+    A4[Syntax: Control Flow Basics]:::rawMaterial
+
+    L1[LABOR: Configure Compiler & Dependencies]:::labor
+    L2[LABOR: Study Syntax & Primitive Types]:::labor
+
+    A2 --> L1
+    A3 --> L1
+    A4 --> L2
+
+    B1[Empty Configured Project Window]:::intermediate
+    B2[Primitive Terminal Logic]:::intermediate
+
+    L1 --> B1
+    L2 --> B2
+
+    C1{"⚡ GET: The Lab Setup"}:::checkpoint
+    B1 --> C1
+    B2 --> C1
+
+    %% --- PHASE 2: THE KINETIC ENGINE ---
+    L3[LABOR: Map Geometric Axes to Pixel Space]:::labor
+    L4[LABOR: Construct Infinite Event Poll Loop]:::labor
+
+    C1 --> L3
+    C1 --> L4
+    A1 --> L3
+
+    D1[Static Shape Rendering]:::intermediate
+    D2[Frame Clearance & Clock Management]:::intermediate
+
+    L3 --> D1
+    L4 --> D2
+
+    C2{"⚡ GET: The Infinite Game Loop"}:::checkpoint
+    D1 --> C2
+    D2 --> C2
+
+    %% --- PHASE 3: INTERACTIVE SYNTHESIS ---
+    L5[LABOR: Intercept Keyboard Key-States]:::labor
+    L6[LABOR: Apply Bounding Box Calculations]:::labor
+
+    C2 --> L5
+    C2 --> L6
+
+    E1[Dynamic Position Manipulation]:::intermediate
+    E2[Overlap Detection Conditionals]:::intermediate
+
+    L5 --> E1
+    L6 --> E2
+
+    C3{"⚡ GET: Controllable Collision Engine"}:::checkpoint
+    E1 --> C3
+    E2 --> C3
+
+    %% --- PHASE 4: THE SYSTEM ---
+    L7[LABOR: Script Boundary Restraints & Deflections]:::labor
+    L8[LABOR: Wire Scoreboards & Instantiation Triggers]:::labor
+
+    C3 --> L7
+    C3 --> L8
+
+    F1[Collision Physics Resolution]:::intermediate
+    F2[Game State Machine Logic]:::intermediate
+
+    L7 --> F1
+    L8 --> F2
+
+    G1[["🚀 PLAYABLE MINI-GAME FROM SCRATCH"]]:::ultimate
+    F1 --> G1
+    F2 --> G1
