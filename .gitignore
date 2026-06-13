@@ -1,0 +1,24 @@
+# Compiled outputs
+*.exe
+*.o
+*.obj
+*.a
+*.lib
+
+# WASM build output
+index.html
+index.js
+index.wasm
+*.data
+
+# Editor / IDE
+.vscode/
+
+# Emscripten SDK
+emsdk/
+
+# Raylib local build artifacts (submodule overrides)
+raylib/build_native/
+raylib/build_wasm/
+raylib/install_native/
+raylib/install_wasm/
