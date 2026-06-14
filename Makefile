@@ -76,7 +76,7 @@ RAYLIB_REL_CFLAGS = \
     -DSUPPORT_FILEFORMAT_XM=0 \
     -DSUPPORT_FILEFORMAT_MOD=0
 
-release: CXXFLAGS = -std=c++11 -Wall -Os -flto -ffunction-sections -fdata-sections -s -Isrc -I$(RAYLIB_INC)
+release: CXXFLAGS = -std=c++11 -Wall -Os -flto -ffunction-sections -fdata-sections -s -Isrc -I$(RAYLIB_DIR)/src
 release: LDFLAGS  = -s -L$(RAYLIB_BUILD_REL)/raylib $(EXTRA_LDFLAGS)
 release: clean $(RAYLIB_LIB_REL) $(TARGET)
 
