@@ -6,7 +6,7 @@ static float ColWidth(int screenWidth)
     return (float)screenWidth / (float)NUM_COLORS;
 }
 
-void InitGame(GameState& state, int screenWidth, int screenHeight)
+void InitGame(GameState& state)
 {
     state.phase            = PHASE_MENU;
     state.score            = 0;
@@ -26,8 +26,6 @@ void InitGame(GameState& state, int screenWidth, int screenHeight)
     state.difficulty       = 1;
     state.volume           = 8;
     state.editing          = false;
-
-    (void)screenHeight;
 }
 
 static void LaunchGame(GameState& state, int screenWidth)
@@ -138,7 +136,7 @@ void UpdateGame(GameState& state, InputState input, int screenWidth, int screenH
     {
         if (input.action)
         {
-            InitGame(state, screenWidth, screenHeight);
+            InitGame(state);
             PlaySound(sounds.powerup2);
         }
         return;

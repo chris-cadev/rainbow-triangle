@@ -1,43 +1,104 @@
 RAYLIB_DIR   := raylib
-RAYLIB_BUILD := raylib/install_native
-RAYLIB_LIB   := $(RAYLIB_BUILD)/raylib/libraylib.a
-RAYLIB_INC   := $(RAYLIB_BUILD)/raylib/include
+RAYLIB_INC   := raylib/install_native/raylib/include
 
-CXX      := g++
-CXXFLAGS := -std=c++11 -Wall -O3 -flto -Isrc -I$(RAYLIB_INC)
-LDFLAGS  := -static -L$(RAYLIB_BUILD)/raylib
-LDLIBS   := -lraylib -lopengl32 -lgdi32 -lwinmm
+RAYLIB_BUILD_DEV := raylib/install_native
+RAYLIB_BUILD_REL := raylib/install_release
 
-SRC      := src/main.cpp src/render.cpp src/collider.cpp src/input.cpp src/state.cpp
-OBJ      := $(SRC:.cpp=.o)
-TARGET   := rainbow-triangle.exe
+RAYLIB_LIB_DEV := $(RAYLIB_BUILD_DEV)/raylib/libraylib.a
+RAYLIB_LIB_REL := $(RAYLIB_BUILD_REL)/raylib/libraylib.a
 
-.PHONY: all wasm clean
+SRC    := src/main.cpp src/render.cpp src/collider.cpp src/input.cpp src/state.cpp
+OBJ    := $(SRC:.cpp=.o)
 
-all: $(TARGET)
+# ── Platform detection ──────────────────────────────────────────────
+ifeq ($(OS),Windows_NT)
+  CXX           := g++
+  LDLIBS        := -lraylib -lopengl32 -lgdi32 -lwinmm
+  TARGET        := rainbow-triangle.exe
+  RM            := del /f
+  RMDIR         = cmd.exe /c if exist $(subst /,\,$(1)) rmdir /s /q $(subst /,\,$(1)) 2>nul
+  CMAKE_G       := -G "MinGW Makefiles"
+  EXTRA_LDFLAGS := -static -Wl,--gc-sections
+  OBJ_PATHS     := $(subst /,\,$(OBJ))
+else
+  UNAME_S       := $(shell uname -s)
+  ifeq ($(UNAME_S),Linux)
+    CXX           := g++
+    LDLIBS        := -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+    OBJ_PATHS     := $(OBJ)
+  endif
+  ifeq ($(UNAME_S),Darwin)
+    CXX           := clang++
+    LDLIBS        := -lraylib -framework Cocoa -framework OpenGL -framework IOKit
+    OBJ_PATHS     := $(OBJ)
+  endif
+  TARGET        := rainbow-triangle
+  RM            := rm -f
+  RMDIR         = rm -rf $(1)
+  CMAKE_G       :=
+  EXTRA_LDFLAGS := -Wl,--gc-sections
+endif
 
-$(TARGET): $(OBJ) $(RAYLIB_LIB)
+.PHONY: all release clean
+
+all: CXXFLAGS = -std=c++11 -Wall -O2 -g -Isrc -I$(RAYLIB_INC)
+all: LDFLAGS  = -L$(RAYLIB_BUILD_DEV)/raylib
+all: $(RAYLIB_LIB_DEV) $(TARGET)
+
+# Disable unused raylib features for a smaller binary
+RAYLIB_REL_CFLAGS = \
+    -DSUPPORT_CAMERA_SYSTEM=0 \
+    -DSUPPORT_GESTURES_SYSTEM=0 \
+    -DSUPPORT_MOUSE_GESTURES=0 \
+    -DSUPPORT_SCREEN_CAPTURE=0 \
+    -DSUPPORT_COMPRESSION_API=0 \
+    -DSUPPORT_AUTOMATION_EVENTS=0 \
+    -DSUPPORT_CLIPBOARD_IMAGE=0 \
+    -DSUPPORT_IMAGE_EXPORT=0 \
+    -DSUPPORT_IMAGE_GENERATION=0 \
+    -DSUPPORT_FILEFORMAT_PNG=0 \
+    -DSUPPORT_FILEFORMAT_BMP=0 \
+    -DSUPPORT_FILEFORMAT_JPG=0 \
+    -DSUPPORT_FILEFORMAT_GIF=0 \
+    -DSUPPORT_FILEFORMAT_QOI=0 \
+    -DSUPPORT_FILEFORMAT_DDS=0 \
+    -DSUPPORT_FILEFORMAT_TTF=0 \
+    -DSUPPORT_FILEFORMAT_FNT=0 \
+    -DSUPPORT_FILEFORMAT_OBJ=0 \
+    -DSUPPORT_FILEFORMAT_MTL=0 \
+    -DSUPPORT_FILEFORMAT_IQM=0 \
+    -DSUPPORT_FILEFORMAT_GLTF=0 \
+    -DSUPPORT_FILEFORMAT_VOX=0 \
+    -DSUPPORT_FILEFORMAT_M3D=0 \
+    -DSUPPORT_MESH_GENERATION=0 \
+    -DSUPPORT_FILEFORMAT_WAV=0 \
+    -DSUPPORT_FILEFORMAT_QOA=0 \
+    -DSUPPORT_FILEFORMAT_XM=0 \
+    -DSUPPORT_FILEFORMAT_MOD=0
+
+release: CXXFLAGS = -std=c++11 -Wall -Os -flto -ffunction-sections -fdata-sections -s -Isrc -I$(RAYLIB_INC)
+release: LDFLAGS  = -s -L$(RAYLIB_BUILD_REL)/raylib $(EXTRA_LDFLAGS)
+release: clean $(RAYLIB_LIB_REL) $(TARGET)
+
+$(TARGET): $(OBJ)
 	$(CXX) -o $@ $(filter %.o,$^) $(LDFLAGS) $(LDLIBS)
 
 src/%.o: src/%.cpp src/sounds.h src/colors.h src/render.h src/collider.h src/input.h src/state.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(RAYLIB_LIB):
-	cmake -S $(RAYLIB_DIR) -B $(RAYLIB_BUILD) -G "MinGW Makefiles"
-	cmake --build $(RAYLIB_BUILD)
+$(RAYLIB_LIB_DEV):
+	cmake -S $(RAYLIB_DIR) -B $(RAYLIB_BUILD_DEV) $(CMAKE_G)
+	cmake --build $(RAYLIB_BUILD_DEV)
 
-wasm:
-	emcc -o index.html src/main.cpp \
-		-O2 \
-		-Iraylib/install_wasm/include \
-		-Lraylib/install_wasm/lib \
-		-lraylib \
-		-s TOTAL_MEMORY=67108864 \
-		-s FORCE_FILESYSTEM=1 \
-		--preload-file assets
-
-run:
-	./$(TARGET)
+$(RAYLIB_LIB_REL):
+	cmake -S $(RAYLIB_DIR) -B $(RAYLIB_BUILD_REL) $(CMAKE_G) \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DBUILD_EXAMPLES=OFF \
+		-DSUPPORT_MODULE_RMODELS=OFF \
+		-DCMAKE_C_FLAGS="$(RAYLIB_REL_CFLAGS)"
+	cmake --build $(RAYLIB_BUILD_REL)
 
 clean:
-	cmd.exe /c "del /f $(subst /,\,$(OBJ)) $(TARGET) index.html index.js index.wasm 2>nul"
+	-$(RM) $(OBJ_PATHS)
+	-$(RM) $(TARGET)
+	$(call RMDIR,$(RAYLIB_BUILD_REL))

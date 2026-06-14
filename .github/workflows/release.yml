@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+          - os: ubuntu-latest
+          - os: macos-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up MSYS2
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-upx
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake g++ \
+            libgl1-mesa-dev \
+            libx11-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libxi-dev \
+            upx
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake upx
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: make release
+
+      - name: Build (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: make release
+
+      - name: Compress with UPX (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: upx --best --lzma rainbow-triangle.exe
+
+      - name: Compress with UPX (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: upx --best --lzma rainbow-triangle
+
+      - name: Rename binary (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: mv rainbow-triangle.exe rainbow-triangle-${{ runner.os }}-${{ runner.arch }}.exe
+
+      - name: Rename binary (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: mv rainbow-triangle rainbow-triangle-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rainbow-triangle-${{ runner.os }}-${{ runner.arch }}
+          path: rainbow-triangle-*
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            **/rainbow-triangle-*

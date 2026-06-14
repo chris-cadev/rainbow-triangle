@@ -37,5 +37,5 @@ struct GameState
     bool       editing;
 };
 
-void InitGame(GameState& state, int screenWidth, int screenHeight);
+void InitGame(GameState& state);
 void UpdateGame(GameState& state, InputState input, int screenWidth, int screenHeight, float dt, const SoundBank& sounds);

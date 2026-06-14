@@ -5,18 +5,19 @@
 #include "input.h"
 #include "sounds.h"
 
+#define INITIAL_WIDTH 400
+
 int main()
 {
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
-    InitWindow(800, 600, "Rainbow Triangle");
+    InitWindow(INITIAL_WIDTH, INITIAL_WIDTH * 2, "Rainbow Triangle");
     InitAudioDevice();
-    MaximizeWindow();
     SetTargetFPS(144);
 
     SoundBank sounds = LoadAllSounds();
 
     GameState state;
-    InitGame(state, 400, 800);
+    InitGame(state);
 
     while (!WindowShouldClose())
     {
@@ -25,33 +26,29 @@ int main()
         int sw = GetScreenWidth();
         int sh = GetScreenHeight();
 
-        // 1:2 game area centered in window
-        float gw = (float)sw;
-        float gh = gw * 2.0f;
-        if (gh > (float)sh)
+        // Enforce 1:2 aspect ratio, height-driven, clamped to monitor width
+        int newSh = sh;
+        int newSw = sh / 2;
+        int maxW = GetMonitorWidth(GetCurrentMonitor());
+        if (newSw > maxW)
         {
-            gh = (float)sh;
-            gw = gh / 2.0f;
+            newSw = maxW;
+            newSh = maxW * 2;
         }
-        int giw = (int)gw;
-        int gih = (int)gh;
-        float ox = ((float)sw - gw) / 2.0f;
-        float oy = ((float)sh - gh) / 2.0f;
+        if (newSw != sw || newSh != sh)
+            SetWindowSize(newSw, newSh);
+        sw = newSw;
+        sh = newSh;
+
+        int giw = sw;
+        int gih = sh;
 
         InputState input = GetInput();
         UpdateGame(state, input, giw, gih, dt, sounds);
 
-        Camera2D cam = { 0 };
-        cam.offset = (Vector2){ ox, oy };
-        cam.zoom = 1.0f;
-
         BeginDrawing();
         ClearBackground(BLACK);
-        BeginScissorMode((int)ox, (int)oy, giw, gih);
-        BeginMode2D(cam);
         DrawScene(state, giw, gih);
-        EndMode2D();
-        EndScissorMode();
         EndDrawing();
     }
 

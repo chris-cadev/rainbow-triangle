@@ -5,7 +5,7 @@ static const char* const sfxChorro   = "src/assets/chorro.mp3";
 static const char* const sfxGameover = "src/assets/gameover.mp3";
 static const char* const sfxPoint    = "src/assets/point.mp3";
 static const char* const sfxPowerup  = "src/assets/powerup.mp3";
-static const char* const sfxPowerup2 = "src/assets/powerup2.wav";
+static const char* const sfxPowerup2 = "src/assets/powerup2.ogg";
 
 struct SoundBank
 {
