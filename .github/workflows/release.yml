@@ -115,9 +115,13 @@ jobs:
 
       - name: Create release and upload assets
         run: |
-          gh release create v0.0.0 \
-            --title "v0.0.0" \
-            --notes-file RELEASE_NOTES.md \
-            rainbow-triangle-*
+          if gh release view v0.0.0 &>/dev/null; then
+            gh release upload v0.0.0 rainbow-triangle-* --clobber
+          else
+            gh release create v0.0.0 \
+              --title "v0.0.0" \
+              --notes-file RELEASE_NOTES.md \
+              rainbow-triangle-*
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
