@@ -97,15 +97,15 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
 
       - name: Generate release notes
         run: |
@@ -113,9 +113,11 @@ jobs:
           echo "" >> RELEASE_NOTES.md
           echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD~ 2>/dev/null || echo '')...${{ github.ref_name }}" >> RELEASE_NOTES.md
 
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          body_path: RELEASE_NOTES.md
-          files: |
+      - name: Create release and upload assets
+        run: |
+          gh release create v0.0.0 \
+            --title "v0.0.0" \
+            --notes-file RELEASE_NOTES.md \
             rainbow-triangle-*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
