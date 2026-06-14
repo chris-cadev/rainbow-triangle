@@ -24,6 +24,9 @@ struct GameState
     float      wallY;
     float      wallCooldown;
     float      fallSpeed;
+    float      rowGravity;
+    float      currentSpeed;
+    float      hopTimer;
     int        passedColumn;
     bool       passedRecorded;
 };

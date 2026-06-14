@@ -16,7 +16,10 @@ void InitGame(GameState& state, int screenWidth, int screenHeight)
     state.bgColor          = GetRainbowColor(state.targetColorIndex);
     state.wallY            = -ColWidth(screenWidth);
     state.wallCooldown     = 0.0f;
-    state.fallSpeed        = 240.0f;
+    state.fallSpeed        = 100.0f;
+    state.rowGravity       = 200.0f;
+    state.currentSpeed     = state.fallSpeed;
+    state.hopTimer         = 0.0f;
     state.passedColumn     = 0;
     state.passedRecorded   = false;
 
@@ -35,10 +38,19 @@ void UpdateGame(GameState& state, InputState input, int screenWidth, int screenH
         return;
     }
 
+    if (state.hopTimer > 0.0f)
+        state.hopTimer -= dt;
+
     if (input.left)
+    {
         state.columnIndex = (state.columnIndex - 1 + NUM_COLORS) % NUM_COLORS;
+        state.hopTimer = 0.12f;
+    }
     if (input.right)
+    {
         state.columnIndex = (state.columnIndex + 1) % NUM_COLORS;
+        state.hopTimer = 0.12f;
+    }
 
     float colW = ColWidth(screenWidth);
 
@@ -54,12 +66,16 @@ void UpdateGame(GameState& state, InputState input, int screenWidth, int screenH
     {
         state.wallCooldown -= dt;
         if (state.wallCooldown <= 0.0f)
+        {
             state.wallY = -colW;
+            state.currentSpeed = state.fallSpeed;
+        }
         return;
     }
 
-    // Fall the wall
-    state.wallY += state.fallSpeed * dt;
+    // Fall the wall with gravity acceleration
+    state.currentSpeed += state.rowGravity * dt;
+    state.wallY += state.currentSpeed * dt;
 
     // Detect pass using the triangle's tip point, with HCI forgiveness offset
     float tipX = cx;
@@ -93,8 +109,11 @@ void UpdateGame(GameState& state, InputState input, int screenWidth, int screenH
                 state.targetColorIndex = GetRandomValue(0, NUM_COLORS - 1);
             state.bgColor = GetRainbowColor(state.targetColorIndex);
             state.fallSpeed *= 1.06f;
-            if (state.fallSpeed > 600.0f)
-                state.fallSpeed = 600.0f;
+            if (state.fallSpeed > 400.0f)
+                state.fallSpeed = 400.0f;
+            state.rowGravity *= 1.04f;
+            if (state.rowGravity > 550.0f)
+                state.rowGravity = 550.0f;
         }
         else
         {

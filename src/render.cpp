@@ -15,8 +15,19 @@ void DrawScene(const GameState& state, int screenWidth, int screenHeight)
         DrawRectangleRec(sq, GetRainbowColor(i));
     }
 
-    // Black upward-pointing triangle
-    DrawTriangle(state.player.a, state.player.b, state.player.c, BLACK);
+    // Hop animation on column change
+    float hopOffset = 0.0f;
+    if (state.hopTimer > 0.0f)
+    {
+        float t = state.hopTimer / 0.12f;
+        hopOffset = -6.0f * 4.0f * t * (1.0f - t);
+    }
+
+    Vector2 a = { state.player.a.x, state.player.a.y + hopOffset };
+    Vector2 b = { state.player.b.x, state.player.b.y + hopOffset };
+    Vector2 c = { state.player.c.x, state.player.c.y + hopOffset };
+
+    DrawTriangle(a, b, c, BLACK);
 
     // Score
     DrawText(TextFormat("Score: %d", state.score), 10, 10, 28, WHITE);
