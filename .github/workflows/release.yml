@@ -58,7 +58,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: msys2 {0}
         run: |
-          export PATH="/mingw64/bin:/usr/bin:$PATH"
+          echo "PATH=$PATH"
+          echo "make location:"
+          ls -la /mingw64/bin/make* 2>&1 || true
+          which make 2>&1 || echo "make not found in PATH"
+          make --version 2>&1 || echo "make failed"
           make release
 
       - name: Build (Linux/macOS)
