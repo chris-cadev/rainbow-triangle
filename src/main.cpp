@@ -1,39 +1,40 @@
 #include "raylib.h"
+#include "colors.h"
+#include "render.h"
+#include "state.h"
+#include "input.h"
+#include "sounds.h"
 
 int main()
 {
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
-    InitWindow(800, 600, "Rainbow Triangle - Lab Setup");
+    InitWindow(800, 600, "Rainbow Triangle");
+    InitAudioDevice();
     MaximizeWindow();
-    const int screenWidth  = GetScreenWidth();
-    const int screenHeight = GetScreenHeight();
+    SetTargetFPS(144);
 
-    Image image = GenImageColor(screenWidth, screenHeight, BLANK);
-    Color *pixels = (Color *)image.data;
-    for (int x = 0; x < screenWidth; x++)
-    {
-        Color color = ColorFromHSV((float)x / screenWidth * 360.0f, 1.0f, 1.0f);
-        for (int y = 0; y < screenHeight; y++)
-            pixels[y * screenWidth + x] = color;
-    }
-    Texture2D rainbow = LoadTextureFromImage(image);
-    UnloadImage(image);
+    SoundBank sounds = LoadAllSounds();
 
-    float offset = 0.0f;
+    GameState state;
+    InitGame(state, GetScreenWidth(), GetScreenHeight());
 
     while (!WindowShouldClose())
     {
-        offset -= 2.0f;
-        if (offset < 0) offset += screenWidth;
+        float dt = GetFrameTime();
+        if (dt > 0.05f) dt = 0.05f;
+        int sw = GetScreenWidth();
+        int sh = GetScreenHeight();
+
+        InputState input = GetInput();
+        UpdateGame(state, input, sw, sh, dt, sounds);
 
         BeginDrawing();
-        DrawTexture(rainbow, (int)offset, 0, WHITE);
-        DrawTexture(rainbow, (int)offset - screenWidth, 0, WHITE);
+        DrawScene(state, sw, sh);
         EndDrawing();
     }
 
-    UnloadTexture(rainbow);
-
+    UnloadAllSounds(sounds);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }

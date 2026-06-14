@@ -1,9 +1,14 @@
+RAYLIB_DIR   := raylib
+RAYLIB_BUILD := raylib/install_native
+RAYLIB_LIB   := $(RAYLIB_BUILD)/raylib/libraylib.a
+RAYLIB_INC   := $(RAYLIB_BUILD)/raylib/include
+
 CXX      := g++
-CXXFLAGS := -std=c++11 -Wall -O2 -Isrc -Iraylib/install_native/include
-LDFLAGS  := -static -Lraylib/install_native/lib
+CXXFLAGS := -std=c++11 -Wall -O3 -flto -Isrc -I$(RAYLIB_INC)
+LDFLAGS  := -static -L$(RAYLIB_BUILD)/raylib
 LDLIBS   := -lraylib -lopengl32 -lgdi32 -lwinmm
 
-SRC      := src/main.cpp
+SRC      := src/main.cpp src/render.cpp src/collider.cpp src/input.cpp src/state.cpp
 OBJ      := $(SRC:.cpp=.o)
 TARGET   := rainbow-triangle.exe
 
@@ -11,11 +16,15 @@ TARGET   := rainbow-triangle.exe
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ)
-	$(CXX) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+$(TARGET): $(OBJ) $(RAYLIB_LIB)
+	$(CXX) -o $@ $(filter %.o,$^) $(LDFLAGS) $(LDLIBS)
 
-src/%.o: src/%.cpp
+src/%.o: src/%.cpp src/sounds.h src/colors.h src/render.h src/collider.h src/input.h src/state.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(RAYLIB_LIB):
+	cmake -S $(RAYLIB_DIR) -B $(RAYLIB_BUILD) -G "MinGW Makefiles"
+	cmake --build $(RAYLIB_BUILD)
 
 wasm:
 	emcc -o index.html src/main.cpp \
