@@ -16,7 +16,7 @@ int main()
     SoundBank sounds = LoadAllSounds();
 
     GameState state;
-    InitGame(state, GetScreenWidth(), GetScreenHeight());
+    InitGame(state, 400, 800);
 
     while (!WindowShouldClose())
     {
@@ -25,11 +25,33 @@ int main()
         int sw = GetScreenWidth();
         int sh = GetScreenHeight();
 
+        // 1:2 game area centered in window
+        float gw = (float)sw;
+        float gh = gw * 2.0f;
+        if (gh > (float)sh)
+        {
+            gh = (float)sh;
+            gw = gh / 2.0f;
+        }
+        int giw = (int)gw;
+        int gih = (int)gh;
+        float ox = ((float)sw - gw) / 2.0f;
+        float oy = ((float)sh - gh) / 2.0f;
+
         InputState input = GetInput();
-        UpdateGame(state, input, sw, sh, dt, sounds);
+        UpdateGame(state, input, giw, gih, dt, sounds);
+
+        Camera2D cam = { 0 };
+        cam.offset = (Vector2){ ox, oy };
+        cam.zoom = 1.0f;
 
         BeginDrawing();
-        DrawScene(state, sw, sh);
+        ClearBackground(BLACK);
+        BeginScissorMode((int)ox, (int)oy, giw, gih);
+        BeginMode2D(cam);
+        DrawScene(state, giw, gih);
+        EndMode2D();
+        EndScissorMode();
         EndDrawing();
     }
 

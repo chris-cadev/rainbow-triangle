@@ -10,7 +10,7 @@ InputState GetInput()
     in.right  = IsKeyPressed(KEY_RIGHT) || IsKeyPressedRepeat(KEY_RIGHT) ||
                 IsKeyPressed(KEY_D)     || IsKeyPressedRepeat(KEY_D)     ||
                 IsKeyPressed(KEY_L)     || IsKeyPressedRepeat(KEY_L);
-    in.action = IsKeyPressed(KEY_SPACE);
+    in.action = IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER);
 
     return in;
 }

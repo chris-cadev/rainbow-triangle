@@ -6,6 +6,8 @@
 
 enum GamePhase
 {
+    PHASE_MENU,
+    PHASE_OPTIONS,
     PHASE_PLAY,
     PHASE_GAMEOVER
 };
@@ -24,11 +26,15 @@ struct GameState
     float      wallY;
     float      wallCooldown;
     float      fallSpeed;
-    float      rowGravity;
+    float      acceleration;
     float      currentSpeed;
     float      hopTimer;
     int        passedColumn;
     bool       passedRecorded;
+    int        menuSelection;
+    int        difficulty;  // 0=Easy, 1=Medium, 2=Hard
+    int        volume;      // 0-10
+    bool       editing;
 };
 
 void InitGame(GameState& state, int screenWidth, int screenHeight);
