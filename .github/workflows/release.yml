@@ -99,6 +99,8 @@ jobs:
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -116,4 +118,4 @@ jobs:
         with:
           body_path: RELEASE_NOTES.md
           files: |
-            **/rainbow-triangle-*
+            rainbow-triangle-*
