@@ -72,9 +72,13 @@ jobs:
         shell: msys2 {0}
         run: upx --best --lzma rainbow-triangle.exe
 
-      - name: Compress with UPX (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Compress with UPX (Linux)
+        if: runner.os == 'Linux'
         run: upx --best --lzma rainbow-triangle
+
+      - name: Compress with UPX (macOS)
+        if: runner.os == 'macOS'
+        run: upx --best --lzma --force-macos rainbow-triangle
 
       - name: Rename binary (Windows)
         if: runner.os == 'Windows'
