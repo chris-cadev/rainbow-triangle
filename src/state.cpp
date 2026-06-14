@@ -1,85 +1,91 @@
+#include <algorithm>
 #include "state.h"
 #include "colors.h"
+#include "constants.h"
 
-static float ColWidth(int screenWidth)
+static float ColumnWidth(int screenWidth)
 {
     return (float)screenWidth / (float)NUM_COLORS;
 }
 
-void InitGame(GameState& state)
+static void ResetGameplayState(GameState &state)
 {
-    state.phase            = PHASE_MENU;
-    state.score            = 0;
-    state.lives            = 3;
-    state.columnIndex      = 3;
-    state.targetColorIndex = GetRandomValue(0, NUM_COLORS - 1);
-    state.bgColor          = backgroundColor;
-    state.wallY            = 0.0f;
-    state.wallCooldown     = 0.0f;
-    state.fallSpeed        = 100.0f;
-    state.acceleration     = 200.0f;
-    state.currentSpeed     = state.fallSpeed;
-    state.hopTimer         = 0.0f;
-    state.passedColumn     = 0;
-    state.passedRecorded   = false;
-    state.menuSelection    = 0;
-    state.difficulty       = 1;
-    state.volume           = 8;
-    state.editing          = false;
+    state.score = 0;
+    state.lives = 3;
+    state.columnIndex = 3;
+    int minTarget = std::max(0, state.columnIndex - 3);
+    int maxTarget = std::min(NUM_COLORS - 1, state.columnIndex + 3);
+    state.targetColorIndex = GetRandomValue(minTarget, maxTarget);
+    state.wallTopY = 0.0f;
+    state.wallCooldownTimer = 0.0f;
+    state.currentSpeed = state.fallSpeed;
+    state.hopRemainingTime = 0.0f;
+    state.passedColumn = 0;
+    state.hasPassedWall = false;
+    state.lastLostLifeIndex = -1;
 }
 
-static void LaunchGame(GameState& state, int screenWidth)
+void InitGame(GameState &state)
 {
-    state.phase            = PHASE_PLAY;
-    state.score            = 0;
-    state.lives            = 3;
-    state.columnIndex      = 3;
-    state.targetColorIndex = GetRandomValue(0, NUM_COLORS - 1);
-    state.bgColor          = GetRainbowColor(state.targetColorIndex);
-    state.wallY            = 0.0f;
-    state.wallCooldown     = 0.0f;
-
-    switch (state.difficulty)
-    {
-        case 0: state.fallSpeed = 60.0f;  state.acceleration = 120.0f; break;
-        case 1: state.fallSpeed = 100.0f; state.acceleration = 200.0f; break;
-        case 2: state.fallSpeed = 150.0f; state.acceleration = 300.0f; break;
-        default: state.fallSpeed = 100.0f; state.acceleration = 200.0f; break;
-    }
-
-    state.currentSpeed     = state.fallSpeed;
-    state.hopTimer         = 0.0f;
-    state.passedColumn     = 0;
-    state.passedRecorded   = false;
+    state.phase = PHASE_MENU;
+    state.fallSpeed = 100.0f;
+    state.acceleration  = 200.0f;
+    state.targetBackgroundColor = backgroundColor;
+    state.selectedMenuIndex = 0;
+    state.difficultyLevel   = 1;
+    state.volumeLevel   = 8;
+    state.isEditing = false;
+    ResetGameplayState(state);
 }
 
-void UpdateGame(GameState& state, InputState input, int screenWidth, int screenHeight, float dt, const SoundBank& sounds)
+static void LaunchGame(GameState &state, int screenWidth)
+{
+    state.phase = PHASE_PLAY;
+
+    static const float difficultyFallSpeeds[] = {0.075f, 0.125f, 0.1875f};
+    static const float difficultyAccelerations[] = {0.15f, 0.25f, 0.375f};
+    int difficultyIndex = state.difficultyLevel;
+    state.fallSpeed = difficultyFallSpeeds[difficultyIndex];
+    state.acceleration = difficultyAccelerations[difficultyIndex];
+
+    ResetGameplayState(state);
+    state.targetBackgroundColor = GetRainbowColor(state.targetColorIndex);
+}
+
+void UpdateGame(GameState &state, InputState input, int screenWidth, int screenHeight, float deltaTime, const SoundBank &sounds)
 {
     if (state.phase == PHASE_MENU)
     {
-        enum { MAIN_PLAY, MAIN_OPTIONS, MAIN_ITEMS };
+        enum
+        {
+            MAIN_PLAY,
+            MAIN_OPTIONS,
+            MAIN_ITEMS
+        };
 
-        if (input.left)  state.menuSelection = (state.menuSelection - 1 + MAIN_ITEMS) % MAIN_ITEMS;
-        if (input.right) state.menuSelection = (state.menuSelection + 1) % MAIN_ITEMS;
+        if (input.left)
+            state.selectedMenuIndex = (state.selectedMenuIndex - 1 + MAIN_ITEMS) % MAIN_ITEMS;
+        if (input.right)
+            state.selectedMenuIndex = (state.selectedMenuIndex + 1) % MAIN_ITEMS;
 
         if (input.action)
         {
-            if (state.menuSelection == MAIN_PLAY)
+            if (state.selectedMenuIndex == MAIN_PLAY)
             {
                 LaunchGame(state, screenWidth);
-                float vol = state.volume / 10.0f;
-                SetSoundVolume(sounds.point, vol);
-                SetSoundVolume(sounds.powerup, vol);
-                SetSoundVolume(sounds.powerup2, vol);
-                SetSoundVolume(sounds.gameover, vol);
-                SetSoundVolume(sounds.chorro, vol);
-                PlaySound(sounds.powerup2);
+                float volumeFraction = state.volumeLevel / 10.0f;
+                SetSoundVolume(sounds.point, volumeFraction);
+                SetSoundVolume(sounds.gameover, volumeFraction);
+                for (int i = 0; i < 4; i++)
+                    SetSoundVolume(sounds.lostLife[i], volumeFraction);
+                for (int i = 0; i < 2; i++)
+                    SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
             }
             else
             {
                 state.phase = PHASE_OPTIONS;
-                state.menuSelection = 0;
-                state.editing = false;
+                state.selectedMenuIndex = 0;
+                state.isEditing = false;
             }
         }
         return;
@@ -87,45 +93,51 @@ void UpdateGame(GameState& state, InputState input, int screenWidth, int screenH
 
     if (state.phase == PHASE_OPTIONS)
     {
-        enum { OPT_DIFFICULTY, OPT_VOLUME, OPT_BACK, OPT_ITEMS };
-
-        if (state.editing)
+        enum
+        {
+            OPT_DIFFICULTY,
+            OPT_VOLUME,
+            OPT_BACK,
+            OPT_ITEMS
+        };
+        if (state.isEditing)
         {
             if (input.left)
             {
-                if (state.menuSelection == OPT_DIFFICULTY)
-                    state.difficulty = (state.difficulty - 1 + 3) % 3;
+                if (state.selectedMenuIndex == OPT_DIFFICULTY)
+                    state.difficultyLevel = (state.difficultyLevel - 1 + 3) % 3;
                 else
-                    state.volume = (state.volume - 1 + 11) % 11;
+                    state.volumeLevel = (state.volumeLevel - 1 + 11) % 11;
             }
             if (input.right)
             {
-                if (state.menuSelection == OPT_DIFFICULTY)
-                    state.difficulty = (state.difficulty + 1) % 3;
+                if (state.selectedMenuIndex == OPT_DIFFICULTY)
+                    state.difficultyLevel = (state.difficultyLevel + 1) % 3;
                 else
-                    state.volume = (state.volume + 1) % 11;
+                    state.volumeLevel = (state.volumeLevel + 1) % 11;
             }
             if (input.action)
             {
-                state.editing = false;
-                PlaySound(sounds.powerup2);
+                state.isEditing = false;
             }
         }
         else
         {
-            if (input.left)  state.menuSelection = (state.menuSelection - 1 + OPT_ITEMS) % OPT_ITEMS;
-            if (input.right) state.menuSelection = (state.menuSelection + 1) % OPT_ITEMS;
+            if (input.left)
+                state.selectedMenuIndex = (state.selectedMenuIndex - 1 + OPT_ITEMS) % OPT_ITEMS;
+            if (input.right)
+                state.selectedMenuIndex = (state.selectedMenuIndex + 1) % OPT_ITEMS;
 
             if (input.action)
             {
-                if (state.menuSelection == OPT_BACK)
+                if (state.selectedMenuIndex == OPT_BACK)
                 {
                     state.phase = PHASE_MENU;
-                    state.menuSelection = 0;
+                    state.selectedMenuIndex = 0;
                 }
                 else
                 {
-                    state.editing = true;
+                    state.isEditing = true;
                 }
             }
         }
@@ -134,102 +146,121 @@ void UpdateGame(GameState& state, InputState input, int screenWidth, int screenH
 
     if (state.phase == PHASE_GAMEOVER)
     {
+        enum { GO_RETRY, GO_MENU, GO_ITEMS };
+
+        if (input.left)
+            state.selectedMenuIndex = (state.selectedMenuIndex - 1 + GO_ITEMS) % GO_ITEMS;
+        if (input.right)
+            state.selectedMenuIndex = (state.selectedMenuIndex + 1) % GO_ITEMS;
+
         if (input.action)
         {
-            InitGame(state);
-            PlaySound(sounds.powerup2);
+            if (state.selectedMenuIndex == GO_RETRY)
+            {
+                LaunchGame(state, screenWidth);
+                float volumeFraction = state.volumeLevel / 10.0f;
+                SetSoundVolume(sounds.point, volumeFraction);
+                SetSoundVolume(sounds.gameover, volumeFraction);
+                for (int i = 0; i < 4; i++)
+                    SetSoundVolume(sounds.lostLife[i], volumeFraction);
+                for (int i = 0; i < 2; i++)
+                    SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
+            }
+            else
+            {
+                InitGame(state);
+            }
         }
         return;
     }
 
-    if (state.hopTimer > 0.0f)
-        state.hopTimer -= dt;
+    if (state.hopRemainingTime > 0.0f)
+        state.hopRemainingTime -= deltaTime;
 
     if (input.left)
     {
         state.columnIndex = (state.columnIndex - 1 + NUM_COLORS) % NUM_COLORS;
-        state.hopTimer = 0.12f;
+        state.hopRemainingTime = HOP_DURATION;
     }
     if (input.right)
     {
         state.columnIndex = (state.columnIndex + 1) % NUM_COLORS;
-        state.hopTimer = 0.12f;
+        state.hopRemainingTime = HOP_DURATION;
     }
 
-    float colW = ColWidth(screenWidth);
+    float columnWidth = ColumnWidth(screenWidth);
 
-    float cx = (state.columnIndex + 0.5f) * colW;
-    float halfW = colW * 0.5f;
-    float h = colW;
-    float sh = (float)screenHeight;
-    state.player = { { cx, sh - h }, { cx - halfW, sh }, { cx + halfW, sh } };
+    float centerX = (state.columnIndex + 0.5f) * columnWidth;
+    float halfWidth = columnWidth * 0.5f;
+    float triangleHeight = columnWidth;
+    float screenHeightFloat = (float)screenHeight;
+    state.player = {
+        {centerX, screenHeightFloat - triangleHeight},
+        {centerX - halfWidth, screenHeightFloat},
+        {centerX + halfWidth, screenHeightFloat}};
 
-    if (state.wallCooldown > 0.0f)
+    state.currentSpeed += state.acceleration * deltaTime;
+    state.wallTopY += state.currentSpeed * screenHeightFloat * deltaTime;
+
+    float playerTipX = centerX;
+    float playerTipY = screenHeightFloat - triangleHeight;
+    float collisionTolerance = columnWidth * TIP_TOLERANCE;
+
+    if (!state.hasPassedWall)
     {
-        state.wallCooldown -= dt;
-        if (state.wallCooldown <= 0.0f)
+        int hitColumn = (int)(playerTipX / columnWidth);
+        if (hitColumn >= 0 && hitColumn < NUM_COLORS &&
+            playerTipY >= state.wallTopY - collisionTolerance &&
+            playerTipY < state.wallTopY + columnWidth + collisionTolerance)
         {
-            state.wallY = 0.0f;
-            state.currentSpeed = state.fallSpeed;
-        }
-        return;
-    }
-
-    state.currentSpeed += state.acceleration * dt;
-    state.wallY += state.currentSpeed * dt;
-
-    float tipX = cx;
-    float tipY = sh - colW;
-    float tipOffset = colW * 0.15f;
-
-    if (!state.passedRecorded)
-    {
-        for (int i = 0; i < NUM_COLORS; i++)
-        {
-            Rectangle sq = { i * colW, state.wallY, colW, colW };
-            if (tipX >= sq.x && tipX < sq.x + sq.width &&
-                tipY >= sq.y - tipOffset && tipY < sq.y + sq.height + tipOffset)
-            {
-                state.passedColumn = i;
-                state.passedRecorded = true;
-                break;
-            }
+            state.passedColumn = hitColumn;
+            state.hasPassedWall = true;
         }
     }
 
-    if (state.wallY > screenHeight)
+    if (state.wallTopY > screenHeight)
     {
         if (state.passedColumn == state.targetColorIndex)
         {
             state.score++;
             PlaySound(sounds.point);
-            int prev = state.targetColorIndex;
-            while (state.targetColorIndex == prev)
-                state.targetColorIndex = GetRandomValue(0, NUM_COLORS - 1);
-            state.bgColor = GetRainbowColor(state.targetColorIndex);
-            state.fallSpeed *= 1.15f;
-            if (state.fallSpeed > 600.0f)
-                state.fallSpeed = 600.0f;
-            if (state.score % 3 == 0)
+            int previousColorIndex = state.targetColorIndex;
+            int minTarget = std::max(0, state.columnIndex - 3);
+            int maxTarget = std::min(NUM_COLORS - 1, state.columnIndex + 3);
+            do
+                state.targetColorIndex = GetRandomValue(minTarget, maxTarget);
+            while (state.targetColorIndex == previousColorIndex && maxTarget > minTarget);
+            state.targetBackgroundColor = GetRainbowColor(state.targetColorIndex);
+            state.fallSpeed *= SPEED_SCALE;
+            if (state.fallSpeed > MAX_FALL_SPEED)
+                state.fallSpeed = MAX_FALL_SPEED;
+            if (state.score % ACCEL_INTERVAL == 0)
             {
-                state.acceleration *= 1.30f;
-                if (state.acceleration > 900.0f)
-                    state.acceleration = 900.0f;
+                state.acceleration *= ACCEL_SCALE;
+                if (state.acceleration > MAX_ACCEL)
+                    state.acceleration = MAX_ACCEL;
             }
         }
         else
         {
             state.lives--;
-            PlaySound(sounds.powerup);
+            int lostLifeIndex = GetRandomValue(0, 3);
+            if (lostLifeIndex == state.lastLostLifeIndex)
+                lostLifeIndex = (lostLifeIndex + 1) % 4;
+            state.lastLostLifeIndex = lostLifeIndex;
+            PlaySound(sounds.lostLife[lostLifeIndex]);
             if (state.lives <= 0)
             {
                 state.phase = PHASE_GAMEOVER;
-                PlaySound(sounds.gameover);
+                if (state.score < 3)
+                    PlaySound(sounds.gameoverOnLessThan3[GetRandomValue(0, 1)]);
+                else
+                    PlaySound(sounds.gameover);
                 return;
             }
         }
-        state.wallY = (float)screenHeight + colW;
-        state.wallCooldown = 1.2f;
-        state.passedRecorded = false;
+        state.wallTopY = -columnWidth * 2.0f;
+        state.currentSpeed = state.fallSpeed;
+        state.hasPassedWall = false;
     }
 }

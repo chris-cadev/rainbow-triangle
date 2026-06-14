@@ -1,18 +1,19 @@
 #include "raylib.h"
 #include "colors.h"
+#include "constants.h"
 #include "render.h"
 #include "state.h"
 #include "input.h"
 #include "sounds.h"
 
-#define INITIAL_WIDTH 400
-
 int main()
 {
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
-    InitWindow(INITIAL_WIDTH, INITIAL_WIDTH * 2, "Rainbow Triangle");
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(INITIAL_WIDTH, INITIAL_WIDTH * ASPECT_DIVISOR, "Rainbow Triangle");
     InitAudioDevice();
-    SetTargetFPS(144);
+    SetTargetFPS(TARGET_FPS);
+
+    int maxMonitorWidth = GetMonitorWidth(GetCurrentMonitor());
 
     SoundBank sounds = LoadAllSounds();
 
@@ -21,34 +22,35 @@ int main()
 
     while (!WindowShouldClose())
     {
-        float dt = GetFrameTime();
-        if (dt > 0.05f) dt = 0.05f;
-        int sw = GetScreenWidth();
-        int sh = GetScreenHeight();
+        float deltaTime = GetFrameTime();
+        if (deltaTime > MAX_FRAME_DELTA) deltaTime = MAX_FRAME_DELTA;
+        int screenWidth = GetScreenWidth();
+        int screenHeight = GetScreenHeight();
 
-        // Enforce 1:2 aspect ratio, height-driven, clamped to monitor width
-        int newSh = sh;
-        int newSw = sh / 2;
-        int maxW = GetMonitorWidth(GetCurrentMonitor());
-        if (newSw > maxW)
+        if (IsWindowResized())
         {
-            newSw = maxW;
-            newSh = maxW * 2;
+            int newScreenHeight = screenHeight;
+            int newScreenWidth = (int)((float)screenHeight / ASPECT_DIVISOR + 0.5f);
+            if (newScreenWidth > maxMonitorWidth)
+            {
+                newScreenWidth = maxMonitorWidth;
+                newScreenHeight = maxMonitorWidth * ASPECT_DIVISOR;
+            }
+            if (newScreenWidth != screenWidth || newScreenHeight != screenHeight)
+                SetWindowSize(newScreenWidth, newScreenHeight);
+            screenWidth = newScreenWidth;
+            screenHeight = newScreenHeight;
         }
-        if (newSw != sw || newSh != sh)
-            SetWindowSize(newSw, newSh);
-        sw = newSw;
-        sh = newSh;
 
-        int giw = sw;
-        int gih = sh;
+        int innerWidth = screenWidth;
+        int innerHeight = screenHeight;
 
         InputState input = GetInput();
-        UpdateGame(state, input, giw, gih, dt, sounds);
+        UpdateGame(state, input, innerWidth, innerHeight, deltaTime, sounds);
 
         BeginDrawing();
         ClearBackground(BLACK);
-        DrawScene(state, giw, gih);
+        DrawScene(state, innerWidth, innerHeight);
         EndDrawing();
     }
 

@@ -1,116 +1,109 @@
 #include <cmath>
 #include "collider.h"
 
-Vector2 TriangleCenter(Triangle t)
+Vector2 TriangleCenter(Triangle triangle)
 {
     return {
-        (t.a.x + t.b.x + t.c.x) / 3.0f,
-        (t.a.y + t.b.y + t.c.y) / 3.0f
+        (triangle.a.x + triangle.b.x + triangle.c.x) / 3.0f,
+        (triangle.a.y + triangle.b.y + triangle.c.y) / 3.0f
     };
 }
 
-Rectangle TriangleAABB(Triangle t)
+Rectangle TriangleAABB(Triangle triangle)
 {
-    float minX = fmin(fmin(t.a.x, t.b.x), t.c.x);
-    float maxX = fmax(fmax(t.a.x, t.b.x), t.c.x);
-    float minY = fmin(fmin(t.a.y, t.b.y), t.c.y);
-    float maxY = fmax(fmax(t.a.y, t.b.y), t.c.y);
-    return { minX, minY, maxX - minX, maxY - minY };
+    float minimumX = fmin(fmin(triangle.a.x, triangle.b.x), triangle.c.x);
+    float maximumX = fmax(fmax(triangle.a.x, triangle.b.x), triangle.c.x);
+    float minimumY = fmin(fmin(triangle.a.y, triangle.b.y), triangle.c.y);
+    float maximumY = fmax(fmax(triangle.a.y, triangle.b.y), triangle.c.y);
+    return { minimumX, minimumY, maximumX - minimumX, maximumY - minimumY };
 }
 
-static float Sign(Vector2 p1, Vector2 p2, Vector2 p3)
+static float Sign(Vector2 pointA, Vector2 pointB, Vector2 pointC)
 {
-    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+    return (pointA.x - pointC.x) * (pointB.y - pointC.y) - (pointB.x - pointC.x) * (pointA.y - pointC.y);
 }
 
-bool PointInTriangle(Vector2 p, Triangle t)
+bool PointInTriangle(Vector2 point, Triangle triangle)
 {
-    float d1 = Sign(p, t.a, t.b);
-    float d2 = Sign(p, t.b, t.c);
-    float d3 = Sign(p, t.c, t.a);
+    float signAB = Sign(point, triangle.a, triangle.b);
+    float signBC = Sign(point, triangle.b, triangle.c);
+    float signCA = Sign(point, triangle.c, triangle.a);
 
-    bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-    bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+    bool hasNegative = (signAB < 0) || (signBC < 0) || (signCA < 0);
+    bool hasPositive = (signAB > 0) || (signBC > 0) || (signCA > 0);
 
-    return !(hasNeg && hasPos);
+    return !(hasNegative && hasPositive);
 }
 
-static Vector2 Sub(Vector2 a, Vector2 b)
+static bool SegmentsIntersect(Vector2 segmentAStart, Vector2 segmentAEnd, Vector2 segmentBStart, Vector2 segmentBEnd)
 {
-    return { a.x - b.x, a.y - b.y };
-}
+    float edgeAX = segmentAEnd.x - segmentAStart.x;
+    float edgeAY = segmentAEnd.y - segmentAStart.y;
+    float edgeBX = segmentBEnd.x - segmentBStart.x;
+    float edgeBY = segmentBEnd.y - segmentBStart.y;
+    float crossProduct = edgeAX * edgeBY - edgeAY * edgeBX;
 
-static float Cross2D(Vector2 a, Vector2 b)
-{
-    return a.x * b.y - a.y * b.x;
-}
-
-static bool SegmentsIntersect(Vector2 p1, Vector2 q1, Vector2 p2, Vector2 q2)
-{
-    Vector2 r = Sub(q1, p1);
-    Vector2 s = Sub(q2, p2);
-    float rxs = Cross2D(r, s);
-
-    if (fabsf(rxs) < 1e-8f)
+    if (fabsf(crossProduct) < 1e-8f)
         return false;
 
-    Vector2 diff = Sub(p2, p1);
-    float t = Cross2D(diff, s) / rxs;
-    float u = Cross2D(diff, r) / rxs;
+    float startDeltaX = segmentBStart.x - segmentAStart.x;
+    float startDeltaY = segmentBStart.y - segmentAStart.y;
+    float projectionA = (startDeltaX * edgeBY - startDeltaY * edgeBX) / crossProduct;
+    float projectionB = (startDeltaX * edgeAY - startDeltaY * edgeAX) / crossProduct;
 
-    return t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f;
+    return projectionA >= 0.0f && projectionA <= 1.0f && projectionB >= 0.0f && projectionB <= 1.0f;
 }
 
-bool TriangleOverlap(Triangle t1, Triangle t2)
+bool TriangleOverlap(Triangle triangleA, Triangle triangleB)
 {
-    Vector2 edges1[] = { t1.a, t1.b, t1.c };
-    Vector2 edges2[] = { t2.a, t2.b, t2.c };
+    Vector2 edgesA[] = { triangleA.a, triangleA.b, triangleA.c };
+    Vector2 edgesB[] = { triangleB.a, triangleB.b, triangleB.c };
 
     for (int i = 0; i < 3; i++)
     {
-        Vector2 p1 = edges1[i];
-        Vector2 q1 = edges1[(i + 1) % 3];
+        Vector2 segmentAStart = edgesA[i];
+        Vector2 segmentAEnd = edgesA[(i + 1) % 3];
 
         for (int j = 0; j < 3; j++)
         {
-            Vector2 p2 = edges2[j];
-            Vector2 q2 = edges2[(j + 1) % 3];
+            Vector2 segmentBStart = edgesB[j];
+            Vector2 segmentBEnd = edgesB[(j + 1) % 3];
 
-            if (SegmentsIntersect(p1, q1, p2, q2))
+            if (SegmentsIntersect(segmentAStart, segmentAEnd, segmentBStart, segmentBEnd))
                 return true;
         }
     }
 
-    return PointInTriangle(t1.a, t2)
-        || PointInTriangle(t2.a, t1);
+    return PointInTriangle(triangleA.a, triangleB)
+        || PointInTriangle(triangleB.a, triangleA);
 }
 
-bool TriangleCircleOverlap(Triangle t, Vector2 center, float radius)
+bool TriangleCircleOverlap(Triangle triangle, Vector2 center, float radius)
 {
-    if (PointInTriangle(center, t))
+    if (PointInTriangle(center, triangle))
         return true;
 
-    Vector2 verts[] = { t.a, t.b, t.c };
+    Vector2 vertices[] = { triangle.a, triangle.b, triangle.c };
     for (int i = 0; i < 3; i++)
     {
-        Vector2 p = verts[i];
-        Vector2 q = verts[(i + 1) % 3];
+        Vector2 edgeStart = vertices[i];
+        Vector2 edgeEnd = vertices[(i + 1) % 3];
 
-        float dx = q.x - p.x;
-        float dy = q.y - p.y;
-        float lenSq = dx * dx + dy * dy;
+        float edgeX = edgeEnd.x - edgeStart.x;
+        float edgeY = edgeEnd.y - edgeStart.y;
+        float lengthSquared = edgeX * edgeX + edgeY * edgeY;
 
-        if (lenSq == 0)
+        if (lengthSquared == 0)
             continue;
 
-        float tParam = fmax(0.0f, fmin(1.0f,
-            ((center.x - p.x) * dx + (center.y - p.y) * dy) / lenSq));
+        float projectionFactor = fmax(0.0f, fmin(1.0f,
+            ((center.x - edgeStart.x) * edgeX + (center.y - edgeStart.y) * edgeY) / lengthSquared));
 
-        Vector2 closest = { p.x + tParam * dx, p.y + tParam * dy };
-        float distSq = (center.x - closest.x) * (center.x - closest.x)
-                     + (center.y - closest.y) * (center.y - closest.y);
+        Vector2 closestPoint = { edgeStart.x + projectionFactor * edgeX, edgeStart.y + projectionFactor * edgeY };
+        float distanceSquared = (center.x - closestPoint.x) * (center.x - closestPoint.x)
+                              + (center.y - closestPoint.y) * (center.y - closestPoint.y);
 
-        if (distSq <= radius * radius)
+        if (distanceSquared <= radius * radius)
             return true;
     }
 

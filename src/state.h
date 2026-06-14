@@ -22,20 +22,21 @@ struct GameState
     int        lives;
     int        columnIndex;
     int        targetColorIndex;
-    Color      bgColor;
-    float      wallY;
-    float      wallCooldown;
+    Color      targetBackgroundColor;
+    float      wallTopY;
+    float      wallCooldownTimer;
     float      fallSpeed;
     float      acceleration;
     float      currentSpeed;
-    float      hopTimer;
+    float      hopRemainingTime;
     int        passedColumn;
-    bool       passedRecorded;
-    int        menuSelection;
-    int        difficulty;  // 0=Easy, 1=Medium, 2=Hard
-    int        volume;      // 0-10
-    bool       editing;
+    bool       hasPassedWall;
+    int        selectedMenuIndex;
+    int        difficultyLevel;
+    int        volumeLevel;
+    bool       isEditing;
+    int        lastLostLifeIndex;
 };
 
 void InitGame(GameState& state);
-void UpdateGame(GameState& state, InputState input, int screenWidth, int screenHeight, float dt, const SoundBank& sounds);
+void UpdateGame(GameState& state, InputState input, int screenWidth, int screenHeight, float deltaTime, const SoundBank& sounds);

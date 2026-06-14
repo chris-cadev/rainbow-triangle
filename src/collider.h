@@ -8,8 +8,8 @@ struct Triangle
     Vector2 c;
 };
 
-Vector2    TriangleCenter(Triangle t);
-Rectangle  TriangleAABB(Triangle t);
-bool       PointInTriangle(Vector2 p, Triangle t);
-bool       TriangleOverlap(Triangle t1, Triangle t2);
-bool       TriangleCircleOverlap(Triangle t, Vector2 center, float radius);
+Vector2    TriangleCenter(Triangle triangle);
+Rectangle  TriangleAABB(Triangle triangle);
+bool       PointInTriangle(Vector2 point, Triangle triangle);
+bool       TriangleOverlap(Triangle triangleA, Triangle triangleB);
+bool       TriangleCircleOverlap(Triangle triangle, Vector2 center, float radius);
