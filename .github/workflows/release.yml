@@ -92,8 +92,20 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        run: |
+          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD~ 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD > RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD~ 2>/dev/null || echo '')...${{ github.ref_name }}" >> RELEASE_NOTES.md
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          body_path: RELEASE_NOTES.md
           files: |
             **/rainbow-triangle-*
