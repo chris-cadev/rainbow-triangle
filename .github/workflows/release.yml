@@ -30,11 +30,18 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-make
-            mingw-w64-x86_64-upx
+
+      - name: Install MSYS2 packages
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          for pkg in mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-upx; do
+            for i in 1 2 3; do
+              pacman -S --noconfirm --needed "$pkg" && break
+              echo "Retrying $pkg ($i/3)..."
+              sleep 5
+            done
+          done
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'

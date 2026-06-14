@@ -25,18 +25,19 @@ else
   ifeq ($(UNAME_S),Linux)
     CXX           := g++
     LDLIBS        := -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+    EXTRA_LDFLAGS := -Wl,--gc-sections
     OBJ_PATHS     := $(OBJ)
   endif
   ifeq ($(UNAME_S),Darwin)
     CXX           := clang++
     LDLIBS        := -lraylib -framework Cocoa -framework OpenGL -framework IOKit
+    EXTRA_LDFLAGS := -Wl,-dead_strip
     OBJ_PATHS     := $(OBJ)
   endif
   TARGET        := rainbow-triangle
   RM            := rm -f
   RMDIR         = rm -rf $(1)
   CMAKE_G       :=
-  EXTRA_LDFLAGS := -Wl,--gc-sections
 endif
 
 .PHONY: all release clean
