@@ -9,6 +9,38 @@ static float ColumnWidth(int screenWidth)
     return (float)screenWidth / (float)NUM_COLORS;
 }
 
+static float MenuCursorX(int screenWidth, const char *items[], int count, float fontSize, float spacing, float *outWidths)
+{
+    float totalWidth = 0.0f;
+    for (int i = 0; i < count; i++)
+    {
+        outWidths[i] = MeasureText(items[i], (int)fontSize);
+        totalWidth += outWidths[i];
+    }
+    totalWidth += spacing * (count - 1);
+    return screenWidth / 2.0f - totalWidth / 2.0f;
+}
+
+static int GetHoveredItem(Vector2 pointer, int screenWidth, const char *items[], int count, float fontSize, float spacing, float cursorY)
+{
+    float widths[8];
+    float cursorX = MenuCursorX(screenWidth, items, count, fontSize, spacing, widths);
+    for (int i = 0; i < count; i++)
+    {
+        Rectangle rect = { cursorX, cursorY, widths[i], fontSize };
+        if (CheckCollisionPointRec(pointer, rect))
+            return i;
+        cursorX += widths[i] + spacing;
+    }
+    return -1;
+}
+
+static const char *DifficultyLabel(int difficultyLevel)
+{
+    const char *labels[] = {"Easy", "Medium", "Hard"};
+    return labels[difficultyLevel % 3];
+}
+
 static void ResetGameplayState(GameState &state)
 {
     state.score = 0;
@@ -133,6 +165,34 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
         if (input.right)
             state.selectedMenuIndex = (state.selectedMenuIndex + 1) % MAIN_ITEMS;
 
+        {
+            const char *items[MAIN_ITEMS] = {"PLAY", "OPTIONS"};
+            int hovered = GetHoveredItem(input.pointerPos, screenWidth, items, MAIN_ITEMS, 36.0f, 80.0f, screenHeight * 0.5f);
+            if (hovered >= 0)
+                state.selectedMenuIndex = hovered;
+
+            if (input.pointerClicked && hovered >= 0)
+            {
+                if (state.selectedMenuIndex == MAIN_PLAY)
+                {
+                    LaunchGame(state, screenWidth);
+                    float volumeFraction = state.volumeLevel / 10.0f;
+                    SetSoundVolume(sounds.point, volumeFraction);
+                    SetSoundVolume(sounds.gameover, volumeFraction);
+                    for (int i = 0; i < 4; i++)
+                        SetSoundVolume(sounds.lostLife[i], volumeFraction);
+                    for (int i = 0; i < 2; i++)
+                        SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
+                }
+                else
+                {
+                    state.phase = PHASE_OPTIONS;
+                    state.selectedMenuIndex = 0;
+                    state.isEditing = false;
+                }
+            }
+        }
+
         if (input.action)
         {
             if (state.selectedMenuIndex == MAIN_PLAY)
@@ -165,6 +225,18 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
             OPT_BACK,
             OPT_ITEMS
         };
+        const char *diffLabel = TextFormat("Difficulty: %s", DifficultyLabel(state.difficultyLevel));
+        const char *volLabel = TextFormat("Volume: %d", state.volumeLevel);
+        const char *backLabel = "BACK";
+        const char *optItems[OPT_ITEMS] = {diffLabel, volLabel, backLabel};
+
+        int hovered = GetHoveredItem(input.pointerPos, screenWidth, optItems, OPT_ITEMS, 32.0f, 50.0f, screenHeight * 0.45f);
+        if (!state.isEditing && hovered >= 0)
+            state.selectedMenuIndex = hovered;
+
+        bool pointerAction = input.pointerClicked && hovered >= 0;
+        bool pointerRightAction = input.pointerRightClicked && hovered >= 0;
+
         if (state.isEditing)
         {
             if (input.left)
@@ -182,8 +254,32 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                     state.volumeLevel = (state.volumeLevel + 1) % 11;
             }
             if (input.action)
-            {
                 state.isEditing = false;
+
+            if (pointerRightAction)
+            {
+                state.selectedMenuIndex = hovered;
+                if (hovered == OPT_DIFFICULTY)
+                    state.difficultyLevel = (state.difficultyLevel + 1) % 3;
+                else if (hovered == OPT_VOLUME)
+                    state.volumeLevel = (state.volumeLevel + 1) % 11;
+            }
+            else if (pointerAction)
+            {
+                if (hovered == OPT_BACK)
+                {
+                    state.phase = PHASE_MENU;
+                    state.selectedMenuIndex = 0;
+                    state.isEditing = false;
+                }
+                else if (hovered == state.selectedMenuIndex)
+                {
+                    state.isEditing = false;
+                }
+                else
+                {
+                    state.selectedMenuIndex = hovered;
+                }
             }
         }
         else
@@ -202,6 +298,33 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 }
                 else
                 {
+                    state.isEditing = true;
+                }
+            }
+
+            if (pointerRightAction)
+            {
+                state.selectedMenuIndex = hovered;
+                if (hovered == OPT_DIFFICULTY)
+                    state.difficultyLevel = (state.difficultyLevel + 1) % 3;
+                else if (hovered == OPT_VOLUME)
+                    state.volumeLevel = (state.volumeLevel + 1) % 11;
+                else if (hovered == OPT_BACK)
+                {
+                    state.phase = PHASE_MENU;
+                    state.selectedMenuIndex = 0;
+                }
+            }
+            else if (pointerAction)
+            {
+                if (hovered == OPT_BACK)
+                {
+                    state.phase = PHASE_MENU;
+                    state.selectedMenuIndex = 0;
+                }
+                else
+                {
+                    state.selectedMenuIndex = hovered;
                     state.isEditing = true;
                 }
             }
@@ -245,6 +368,32 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
         if (input.right)
             state.selectedMenuIndex = (state.selectedMenuIndex + 1) % GO_ITEMS;
 
+        {
+            const char *goItems[GO_ITEMS] = {"RETRY", "MENU"};
+            int hovered = GetHoveredItem(input.pointerPos, screenWidth, goItems, GO_ITEMS, 36.0f, 80.0f, screenHeight * 0.55f);
+            if (hovered >= 0)
+                state.selectedMenuIndex = hovered;
+
+            if (input.pointerClicked && hovered >= 0)
+            {
+                if (hovered == GO_RETRY)
+                {
+                    LaunchGame(state, screenWidth);
+                    float volumeFraction = state.volumeLevel / 10.0f;
+                    SetSoundVolume(sounds.point, volumeFraction);
+                    SetSoundVolume(sounds.gameover, volumeFraction);
+                    for (int i = 0; i < 4; i++)
+                        SetSoundVolume(sounds.lostLife[i], volumeFraction);
+                    for (int i = 0; i < 2; i++)
+                        SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
+                }
+                else
+                {
+                    InitGame(state);
+                }
+            }
+        }
+
         if (input.action)
         {
             if (state.selectedMenuIndex == GO_RETRY)
@@ -269,12 +418,12 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
     if (state.hopRemainingTime > 0.0f)
         state.hopRemainingTime -= deltaTime;
 
-    if (input.left)
+    if (input.left || input.pointerClicked)
     {
         state.columnIndex = (state.columnIndex - 1 + NUM_COLORS) % NUM_COLORS;
         state.hopRemainingTime = HOP_DURATION;
     }
-    if (input.right)
+    if (input.right || input.pointerRightClicked)
     {
         state.columnIndex = (state.columnIndex + 1) % NUM_COLORS;
         state.hopRemainingTime = HOP_DURATION;

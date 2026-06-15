@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rainbow Triangle</title>
+  <meta name="description" content="Rainbow Triangle — a fast-paced arcade game built with raylib">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    <div id="loader">
+      <div class="spinner"></div>
+      <div id="status">Loading...</div>
+    </div>
+  </div>
+
+  <script type='text/javascript'>
+    var statusElement = document.querySelector('#status');
+    var spinnerElement = document.querySelector('.spinner');
+    var loaderElement = document.querySelector('#loader');
+
+    var Module = {
+      preRun: [],
+      postRun: [function() { loaderElement.style.display = 'none'; }],
+      print: (function() {
+        return function(text) {
+          console.log(text);
+        };
+      })(),
+      printErr: function(text) {
+        console.error(text);
+      },
+      canvas: (function() {
+        var canvas = document.querySelector('#canvas');
+        canvas.addEventListener("webglcontextlost", function(e) {
+          alert('WebGL context lost. Please reload the page.');
+          e.preventDefault();
+        }, false);
+        return canvas;
+      })(),
+      setStatus: function(text) {
+        if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+        if (text === Module.setStatus.last.text) return;
+
+        var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+        var now = Date.now();
+        if (m && now - Module.setStatus.last.time < 30) return;
+
+        Module.setStatus.last.time = now;
+        Module.setStatus.last.text = text;
+
+        if (m) {
+          text = m[1];
+          spinnerElement.style.display = '';
+        } else {
+          if (!text) spinnerElement.style.display = 'none';
+        }
+        statusElement.innerHTML = text;
+      },
+      totalDependencies: 0,
+      monitorRunDependencies: function(left) {
+        this.totalDependencies = Math.max(this.totalDependencies, left);
+        Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+      }
+    };
+
+    Module.setStatus('Downloading...');
+
+    window.onerror = function() {
+      Module.setStatus('Exception thrown, see console');
+      spinnerElement.style.display = 'none';
+      Module.setStatus = function(text) { if (text) Module.printErr('[post-exception] ' + text); };
+    };
+  </script>
+  {{{ SCRIPT }}}
+</body>
+</html>

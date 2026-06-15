@@ -1,0 +1,17 @@
+.git/
+.gitignore
+.gitmodules
+.gitattributes
+.vscode/
+emsdk/
+*.exe
+*.o
+*.a
+*.lib
+raylib/build_*/
+raylib/install_*/
+web/index.html
+web/index.js
+web/index.wasm
+web/*.data
+web/*.o

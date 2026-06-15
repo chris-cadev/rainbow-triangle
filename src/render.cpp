@@ -5,6 +5,11 @@
 #include "constants.h"
 #include "state.h"
 
+static float Scale(int screenWidth)
+{
+    return (float)screenWidth / INITIAL_WIDTH;
+}
+
 static const char *DifficultyLabel(int difficultyLevel)
 {
     const char *labels[] = {"Easy", "Medium", "Hard"};
@@ -35,13 +40,15 @@ void DrawMenu(const GameState &state, int screenWidth, int screenHeight)
 
     ClearBackground(backgroundColor);
 
+    float s = Scale(screenWidth);
+
     const char *title = "RAINBOW TRIANGLE";
-    float titleWidth = MeasureText(title, 60);
-    DrawText(title, screenWidth / 2.0f - titleWidth / 2.0f, screenHeight * 0.25f, 60, WHITE);
+    float titleWidth = MeasureText(title, 60 * s);
+    DrawText(title, screenWidth / 2.0f - titleWidth / 2.0f, screenHeight * 0.25f, 60 * s, WHITE);
 
     const char *items[MAIN_ITEMS] = {"PLAY", "OPTIONS"};
-    float fontSize = 36.0f;
-    float itemSpacing = 80.0f;
+    float fontSize = 36.0f * s;
+    float itemSpacing = 80.0f * s;
     float widths[MAIN_ITEMS];
     float cursorX = CenteredStartX(screenWidth, items, MAIN_ITEMS, fontSize, itemSpacing, widths);
     float cursorY = screenHeight * 0.5f;
@@ -53,9 +60,9 @@ void DrawMenu(const GameState &state, int screenWidth, int screenHeight)
         cursorX += widths[i] + itemSpacing;
     }
 
-    const char *hint = "Left/Right: navigate    Space/Enter: select";
-    float hintWidth = MeasureText(hint, 18);
-    DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.7f, 18, GRAY);
+    const char *hint = "Left/Right: navigate    Click/Space/Enter: select";
+    float hintWidth = MeasureText(hint, 18 * s);
+    DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.7f, 18 * s, GRAY);
 
     return;
 }
@@ -72,17 +79,19 @@ void DrawOptions(const GameState &state, int screenWidth, int screenHeight)
 
     ClearBackground(backgroundColor);
 
+    float s = Scale(screenWidth);
+
     const char *title = "OPTIONS";
-    float titleWidth = MeasureText(title, 50);
-    DrawText(title, screenWidth / 2.0f - titleWidth / 2.0f, screenHeight * 0.15f, 50, WHITE);
+    float titleWidth = MeasureText(title, 50 * s);
+    DrawText(title, screenWidth / 2.0f - titleWidth / 2.0f, screenHeight * 0.15f, 50 * s, WHITE);
 
     const char *difficultyLabel = TextFormat("Difficulty: %s", DifficultyLabel(state.difficultyLevel));
     const char *volumeLabel = TextFormat("Volume: %d", state.volumeLevel);
     const char *backLabel = "BACK";
 
     const char *items[OPT_ITEMS] = {difficultyLabel, volumeLabel, backLabel};
-    float fontSize = 32.0f;
-    float itemSpacing = 50.0f;
+    float fontSize = 32.0f * s;
+    float itemSpacing = 50.0f * s;
     float widths[OPT_ITEMS];
     float cursorX = CenteredStartX(screenWidth, items, OPT_ITEMS, fontSize, itemSpacing, widths);
     float cursorY = screenHeight * 0.45f;
@@ -103,18 +112,20 @@ void DrawOptions(const GameState &state, int screenWidth, int screenHeight)
 
     const char *hint;
     if (state.isEditing)
-        hint = "Left/Right: change    Space/Enter: stop editing";
+        hint = "Left/Right: change    Click/Space/Enter: stop editing";
     else
-        hint = "Left/Right: navigate    Space/Enter: edit / back";
+        hint = "Left/Right: navigate    Click/Space/Enter: edit / back";
 
-    float hintWidth = MeasureText(hint, 18);
-    DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.75f, 18, GRAY);
+    float hintWidth = MeasureText(hint, 18 * s);
+    DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.75f, 18 * s, GRAY);
 
     return;
 }
 
 void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
 {
+    float sc = Scale(screenWidth);
+
     DrawRectangle(0, 0, screenWidth, screenHeight, {0, 0, 0, 180});
 
     if (state.goStage == 0)
@@ -149,13 +160,13 @@ void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
     }
 
     const char *message = "GAME OVER";
-    float messageWidth = MeasureText(message, 60);
-    DrawText(message, screenWidth / 2.0f - messageWidth / 2.0f, screenHeight * 0.25f, 60, WHITE);
+    float messageWidth = MeasureText(message, 60 * sc);
+    DrawText(message, screenWidth / 2.0f - messageWidth / 2.0f, screenHeight * 0.25f, 60 * sc, WHITE);
 
     char scoreBuf[64];
     snprintf(scoreBuf, sizeof(scoreBuf), "Score: %d", state.score);
-    float scoreWidth = MeasureText(scoreBuf, 36);
-    DrawText(scoreBuf, screenWidth / 2.0f - scoreWidth / 2.0f, screenHeight * 0.4f, 36, WHITE);
+    float scoreWidth = MeasureText(scoreBuf, 36 * sc);
+    DrawText(scoreBuf, screenWidth / 2.0f - scoreWidth / 2.0f, screenHeight * 0.4f, 36 * sc, WHITE);
 
     if (state.goStage >= 1)
     {
@@ -183,8 +194,8 @@ void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
     if (state.goStage == 2)
     {
         const char *items[] = {"RETRY", "MENU"};
-        float fontSize = 36.0f;
-        float itemSpacing = 80.0f;
+        float fontSize = 36.0f * sc;
+        float itemSpacing = 80.0f * sc;
         float widths[2];
         float cursorX = CenteredStartX(screenWidth, items, 2, fontSize, itemSpacing, widths);
         float cursorY = screenHeight * 0.55f;
@@ -196,9 +207,9 @@ void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
             cursorX += widths[i] + itemSpacing;
         }
 
-        const char *hint = "Left/Right: navigate    Space/Enter: select";
-        float hintWidth = MeasureText(hint, 18);
-        DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.7f, 18, GRAY);
+        const char *hint = "Left/Right: navigate    Click/Space/Enter: select";
+        float hintWidth = MeasureText(hint, 18 * sc);
+        DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.7f, 18 * sc, GRAY);
     }
 }
 
@@ -227,15 +238,17 @@ void DrawGame(const GameState &state, int screenWidth, int screenHeight)
 
     DrawTriangle(topVertex, bottomLeftVertex, bottomRightVertex, backgroundColor);
 
+    float s = Scale(screenWidth);
+
     char scoreBuf[32];
     snprintf(scoreBuf, sizeof(scoreBuf), "Score: %d", state.score);
-    DrawText(scoreBuf, 10, 10, 28, WHITE);
+    DrawText(scoreBuf, 10 * s, 10 * s, 28 * s, WHITE);
 
     // Measure worst-case width so the label position stays fixed as lives change
-    float livesLabelWidth = MeasureText("Lives: 99", 28);
+    float livesLabelWidth = MeasureText("Lives: 99", 28 * s);
     char livesBuf[32];
     snprintf(livesBuf, sizeof(livesBuf), "Lives: %d", state.lives);
-    DrawText(livesBuf, screenWidth - livesLabelWidth - 10, 10, 28, WHITE);
+    DrawText(livesBuf, screenWidth - livesLabelWidth - 10 * s, 10 * s, 28 * s, WHITE);
 }
 
 void DrawScene(const GameState &state, int screenWidth, int screenHeight)

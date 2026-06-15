@@ -40,7 +40,7 @@ else
   CMAKE_G       :=
 endif
 
-.PHONY: all release clean
+.PHONY: all release clean wasm wasm-release clean-wasm
 
 all: CXXFLAGS = -std=c++11 -Wall -O2 -g -Isrc -I$(RAYLIB_INC)
 all: LDFLAGS  = -L$(RAYLIB_BUILD_DEV)/raylib
@@ -99,7 +99,58 @@ $(RAYLIB_LIB_REL):
 		-DCMAKE_C_FLAGS="$(RAYLIB_REL_CFLAGS)"
 	cmake --build $(RAYLIB_BUILD_REL)
 
+# ── WebAssembly (Emscripten) ──────────────────────────────────────────────
+RAYLIB_WASM     := raylib/install_wasm
+RAYLIB_INC_WASM := $(RAYLIB_WASM)/raylib/include
+RAYLIB_LIB_WASM := $(RAYLIB_WASM)/raylib/libraylib.a
+EMXX            := em++
+EMCMAKE         := emcmake
+
+WEB_OUT        := web/index.html
+WEB_SRC         = $(SRC)
+WEB_OBJ         = $(WEB_SRC:src/%.cpp=web/%.o)
+WEB_ASSETS     := src/assets
+
+EM_LDFLAGS = \
+	-lraylib \
+	-s USE_GLFW=3 \
+	-s WASM=1 \
+	-s ASYNCIFY \
+	-s GL_ENABLE_GET_PROC_ADDRESS=1 \
+	-s MIN_WEBGL_VERSION=2 \
+	-s MAX_WEBGL_VERSION=2 \
+	-s FORCE_FILESYSTEM=1 \
+	-s TOTAL_MEMORY=67108864 \
+	--preload-file $(WEB_ASSETS)@src/assets \
+	--shell-file web/shell.html
+
+.PHONY: wasm wasm-release
+
+wasm: CXXFLAGS = -std=c++11 -Wall -O2 -g -Isrc -I$(RAYLIB_INC_WASM)
+wasm: LDFLAGS  = -L$(RAYLIB_WASM)/raylib
+wasm: $(RAYLIB_LIB_WASM) $(WEB_OUT)
+
+wasm-release: CXXFLAGS = -std=c++11 -Wall -Os -flto -DNDEBUG -Isrc -I$(RAYLIB_INC_WASM)
+wasm-release: LDFLAGS  = -L$(RAYLIB_WASM)/raylib
+wasm-release: $(RAYLIB_LIB_WASM) $(WEB_OUT)
+
+$(WEB_OUT): $(WEB_OBJ)
+	$(EMXX) -o $@ $(filter %.o,$^) $(LDFLAGS) $(EM_LDFLAGS)
+
+web/%.o: src/%.cpp src/sounds.h src/colors.h src/constants.h src/render.h src/collider.h src/input.h src/state.h
+	$(EMXX) $(CXXFLAGS) -c $< -o $@
+
+$(RAYLIB_LIB_WASM):
+	$(EMCMAKE) cmake -S $(RAYLIB_DIR) -B $(RAYLIB_WASM) -DPLATFORM=Web -DBUILD_EXAMPLES=OFF
+	cmake --build $(RAYLIB_WASM)
+
+clean-wasm:
+	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data
+	$(call RMDIR,$(RAYLIB_WASM))
+
 clean:
 	-$(RM) $(OBJ_PATHS)
 	-$(RM) $(TARGET)
+	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data
 	$(call RMDIR,$(RAYLIB_BUILD_REL))
+	$(call RMDIR,$(RAYLIB_WASM))

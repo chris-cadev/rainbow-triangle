@@ -12,5 +12,13 @@ InputState GetInput()
                         IsKeyPressed(KEY_L)     || IsKeyPressedRepeat(KEY_L);
     inputState.action = IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER);
 
+    Vector2 pos = GetMousePosition();
+    int touchCount = GetTouchPointCount();
+    if (touchCount > 0)
+        pos = GetTouchPosition(0);
+    inputState.pointerPos = pos;
+    inputState.pointerClicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    inputState.pointerRightClicked = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+
     return inputState;
 }
