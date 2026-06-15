@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <math.h>
 #include "render.h"
 #include "colors.h"
 #include "constants.h"
@@ -116,6 +117,37 @@ void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
 {
     DrawRectangle(0, 0, screenWidth, screenHeight, {0, 0, 0, 180});
 
+    if (state.goStage == 0)
+    {
+        Vector2 top = state.player.a;
+        Vector2 bl = state.player.b;
+        Vector2 br = state.player.c;
+        DrawTriangle(top, bl, br, WHITE);
+
+        if (state.goTimer >= GO_CRACK_TIME)
+        {
+            Vector2 center = TriangleCenter(state.player);
+            for (int i = 0; i < 8; i++)
+            {
+                int h = i * 104729 + 42;
+                float baseAngle = ((h % 1000) / 1000.0f) * 2.0f * PI;
+                Vector2 prev = center;
+                int segments = 2 + (h / 1000) % 3;
+                float totalLen = 15.0f + ((h / 1000 / 3) % 1000 / 1000.0f) * 50.0f;
+                float segLen = totalLen / segments;
+                float angle = baseAngle;
+
+                for (int j = 0; j < segments; j++)
+                {
+                    angle += ((j % 2 == 0) ? 1 : -1) * 0.4f;
+                    Vector2 next = {prev.x + cosf(angle) * segLen, prev.y + sinf(angle) * segLen};
+                    DrawLineEx(prev, next, 2.0f, {20, 20, 20, 255});
+                    prev = next;
+                }
+            }
+        }
+    }
+
     const char *message = "GAME OVER";
     float messageWidth = MeasureText(message, 60);
     DrawText(message, screenWidth / 2.0f - messageWidth / 2.0f, screenHeight * 0.25f, 60, WHITE);
@@ -125,23 +157,49 @@ void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
     float scoreWidth = MeasureText(scoreBuf, 36);
     DrawText(scoreBuf, screenWidth / 2.0f - scoreWidth / 2.0f, screenHeight * 0.4f, 36, WHITE);
 
-    const char *items[] = {"RETRY", "MENU"};
-    float fontSize = 36.0f;
-    float itemSpacing = 80.0f;
-    float widths[2];
-    float cursorX = CenteredStartX(screenWidth, items, 2, fontSize, itemSpacing, widths);
-    float cursorY = screenHeight * 0.55f;
-
-    for (int i = 0; i < 2; i++)
+    if (state.goStage >= 1)
     {
-        Color textColor = (i == state.selectedMenuIndex) ? YELLOW : WHITE;
-        DrawText(items[i], cursorX, cursorY, fontSize, textColor);
-        cursorX += widths[i] + itemSpacing;
+        for (int i = 0; i < MAX_GO_PARTICLES; i++)
+        {
+            const GoParticle &p = state.goParticles[i];
+            if (!p.active) continue;
+
+            float alpha = p.life < 1.0f ? p.life : 1.0f;
+            Color color = {255, 255, 255, (unsigned char)(alpha * 255)};
+
+            float h = p.size * 0.5f;
+            float w = p.size * 0.5f;
+            float c = cosf(p.rotation);
+            float s = sinf(p.rotation);
+
+            Vector2 v0 = {p.pos.x + h * s,         p.pos.y - h * c};
+            Vector2 v1 = {p.pos.x - w * c - h * s, p.pos.y - w * s + h * c};
+            Vector2 v2 = {p.pos.x + w * c - h * s, p.pos.y + w * s + h * c};
+
+            DrawTriangle(v0, v1, v2, color);
+        }
     }
 
-    const char *hint = "Left/Right: navigate    Space/Enter: select";
-    float hintWidth = MeasureText(hint, 18);
-    DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.7f, 18, GRAY);
+    if (state.goStage == 2)
+    {
+        const char *items[] = {"RETRY", "MENU"};
+        float fontSize = 36.0f;
+        float itemSpacing = 80.0f;
+        float widths[2];
+        float cursorX = CenteredStartX(screenWidth, items, 2, fontSize, itemSpacing, widths);
+        float cursorY = screenHeight * 0.55f;
+
+        for (int i = 0; i < 2; i++)
+        {
+            Color textColor = (i == state.selectedMenuIndex) ? YELLOW : WHITE;
+            DrawText(items[i], cursorX, cursorY, fontSize, textColor);
+            cursorX += widths[i] + itemSpacing;
+        }
+
+        const char *hint = "Left/Right: navigate    Space/Enter: select";
+        float hintWidth = MeasureText(hint, 18);
+        DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.7f, 18, GRAY);
+    }
 }
 
 void DrawGame(const GameState &state, int screenWidth, int screenHeight)

@@ -14,6 +14,19 @@ enum GamePhase
 
 enum { NUM_COLORS = 7 };
 
+struct GoParticle
+{
+    Vector2 pos;
+    Vector2 vel;
+    float   size;
+    float   rotation;
+    float   rotSpeed;
+    float   life;
+    bool    active;
+};
+
+constexpr int MAX_GO_PARTICLES = 100;
+
 struct GameState
 {
     GamePhase phase;
@@ -36,6 +49,10 @@ struct GameState
     int        volumeLevel;
     bool       isEditing;
     int        lastLostLifeIndex;
+    float      goTimer;
+    float      goElapsed;
+    int        goStage;
+    GoParticle goParticles[MAX_GO_PARTICLES];
 };
 
 void InitGame(GameState& state);

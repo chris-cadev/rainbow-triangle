@@ -20,3 +20,8 @@ constexpr float MAX_FALL_SPEED  = 0.75f;   // screen-heights/sec (was 600px/s @ 
 constexpr float ACCEL_SCALE     = 1.30f;
 constexpr float MAX_ACCEL       = 1.125f;  // screen-heights/s² (was 900px/s² @ 800px ref)
 constexpr int   ACCEL_INTERVAL  = 3;
+
+// Game-over animation timings (from waveform analysis of gameover.mp3)
+constexpr float GO_CRACK_TIME    = 0.676f;   // first transient peak — triangle cracks
+constexpr float GO_PARTICLE_TIME = 1.96f;    // second transient peak — triangle shatters
+constexpr float GO_UI_TIME       = 2.0f;     // buttons appear

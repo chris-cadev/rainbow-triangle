@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <math.h>
 #include "state.h"
 #include "colors.h"
 #include "constants.h"
@@ -35,7 +36,71 @@ void InitGame(GameState &state)
     state.difficultyLevel   = 1;
     state.volumeLevel   = 8;
     state.isEditing = false;
+    state.goTimer = 0.0f;
+    state.goElapsed = 0.0f;
+    state.goStage = 0;
     ResetGameplayState(state);
+}
+
+static float DetRand(unsigned &h)
+{
+    h = h * 1103515245 + 12345;
+    return (h & 0x7fffffff) / (float)0x7fffffff;
+}
+
+static void SpawnGoParticles(GameState &state)
+{
+    Vector2 center = TriangleCenter(state.player);
+
+    for (int i = 0; i < MAX_GO_PARTICLES; i++)
+    {
+        auto &p = state.goParticles[i];
+        unsigned h = (unsigned)(i * 31337 + 1337);
+
+        float r1 = DetRand(h);
+        float r2 = DetRand(h);
+        if (r1 + r2 > 1.0f) { r1 = 1.0f - r1; r2 = 1.0f - r2; }
+        p.pos.x = state.player.a.x + (state.player.b.x - state.player.a.x) * r1 + (state.player.c.x - state.player.a.x) * r2;
+        p.pos.y = state.player.a.y + (state.player.b.y - state.player.a.y) * r1 + (state.player.c.y - state.player.a.y) * r2;
+
+        float dx = p.pos.x - center.x;
+        float dy = p.pos.y - center.y;
+        float speed = 50.0f + DetRand(h) * 250.0f;
+
+        if (dx != 0 || dy != 0)
+        {
+            float len = sqrtf(dx * dx + dy * dy);
+            p.vel.x = (dx / len) * speed + (DetRand(h) - 0.5f) * 100.0f;
+            p.vel.y = (dy / len) * speed + (DetRand(h) - 0.5f) * 100.0f;
+        }
+        else
+        {
+            float angle = DetRand(h) * 2.0f * PI;
+            p.vel = {cosf(angle) * speed, sinf(angle) * speed};
+        }
+
+        p.size = 2.0f + DetRand(h) * 6.0f;
+        p.rotation = DetRand(h) * 2.0f * PI;
+        p.rotSpeed = (DetRand(h) - 0.5f) * 8.0f;
+        p.life = 1.5f + DetRand(h) * 1.0f;
+        p.active = true;
+    }
+}
+
+static void UpdateGoParticles(GameState &state, float deltaTime)
+{
+    for (int i = 0; i < MAX_GO_PARTICLES; i++)
+    {
+        auto &p = state.goParticles[i];
+        if (!p.active) continue;
+
+        p.pos.x += p.vel.x * deltaTime;
+        p.pos.y += p.vel.y * deltaTime;
+        p.rotation += p.rotSpeed * deltaTime;
+        p.life -= deltaTime;
+        if (p.life <= 0.0f)
+            p.active = false;
+    }
 }
 
 static void LaunchGame(GameState &state, int screenWidth)
@@ -146,6 +211,33 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
 
     if (state.phase == PHASE_GAMEOVER)
     {
+        if (state.goStage == 0)
+        {
+            state.goTimer += deltaTime;
+            state.goElapsed += deltaTime;
+            if (state.goTimer >= GO_PARTICLE_TIME)
+            {
+                state.goStage = 1;
+                state.goTimer = 0.0f;
+                SpawnGoParticles(state);
+            }
+            return;
+        }
+
+        if (state.goStage == 1)
+        {
+            state.goElapsed += deltaTime;
+            UpdateGoParticles(state, deltaTime);
+            if (state.goElapsed >= GO_UI_TIME)
+                state.goStage = 2;
+            return;
+        }
+
+        if (state.goStage == 2)
+        {
+            UpdateGoParticles(state, deltaTime);
+        }
+
         enum { GO_RETRY, GO_MENU, GO_ITEMS };
 
         if (input.left)
@@ -192,7 +284,7 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
 
     float centerX = (state.columnIndex + 0.5f) * columnWidth;
     float halfWidth = columnWidth * 0.5f;
-    float triangleHeight = columnWidth;
+    float triangleHeight = columnWidth * 0.86602540378f; // sqrt(3)/2 for equilateral
     float screenHeightFloat = (float)screenHeight;
     state.player = {
         {centerX, screenHeightFloat - triangleHeight},
@@ -252,10 +344,12 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
             if (state.lives <= 0)
             {
                 state.phase = PHASE_GAMEOVER;
+                state.goTimer = 0.0f;
+                state.goElapsed = 0.0f;
+                state.goStage = 0;
+                PlaySound(sounds.gameover);
                 if (state.score < 3)
                     PlaySound(sounds.gameoverOnLessThan3[GetRandomValue(0, 1)]);
-                else
-                    PlaySound(sounds.gameover);
                 return;
             }
         }
