@@ -487,8 +487,9 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
             state.score++;
             if (state.soundsLoaded) PlaySound(sounds.point);
             int previousColorIndex = state.targetColorIndex;
-            int minTarget = std::max(0, state.columnIndex - 3);
-            int maxTarget = std::min(NUM_COLORS - 1, state.columnIndex + 3);
+            int targetRange = state.difficultyLevel + 1;
+            int minTarget = std::max(0, state.columnIndex - targetRange);
+            int maxTarget = std::min(NUM_COLORS - 1, state.columnIndex + targetRange);
             do
                 state.targetColorIndex = GetRandomValue(minTarget, maxTarget);
             while (state.targetColorIndex == previousColorIndex && maxTarget > minTarget);
