@@ -48,6 +48,7 @@ struct GameState
     int        difficultyLevel;
     int        volumeLevel;
     bool       isEditing;
+    bool       soundsLoaded;
     int        lastLostLifeIndex;
     float      goTimer;
     float      goElapsed;

@@ -20,5 +20,13 @@ InputState GetInput()
     inputState.pointerClicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     inputState.pointerRightClicked = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
 
+    if (touchCount > 0 && inputState.pointerClicked)
+    {
+        if (pos.x < GetScreenWidth() / 2.0f)
+            inputState.left = true;
+        else
+            inputState.right = true;
+    }
+
     return inputState;
 }

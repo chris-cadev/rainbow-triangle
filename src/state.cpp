@@ -68,6 +68,7 @@ void InitGame(GameState &state)
     state.difficultyLevel   = 1;
     state.volumeLevel   = 8;
     state.isEditing = false;
+    state.soundsLoaded = false;
     state.goTimer = 0.0f;
     state.goElapsed = 0.0f;
     state.goStage = 0;
@@ -176,13 +177,6 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 if (state.selectedMenuIndex == MAIN_PLAY)
                 {
                     LaunchGame(state, screenWidth);
-                    float volumeFraction = state.volumeLevel / 10.0f;
-                    SetSoundVolume(sounds.point, volumeFraction);
-                    SetSoundVolume(sounds.gameover, volumeFraction);
-                    for (int i = 0; i < 4; i++)
-                        SetSoundVolume(sounds.lostLife[i], volumeFraction);
-                    for (int i = 0; i < 2; i++)
-                        SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
                 }
                 else
                 {
@@ -198,13 +192,6 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
             if (state.selectedMenuIndex == MAIN_PLAY)
             {
                 LaunchGame(state, screenWidth);
-                float volumeFraction = state.volumeLevel / 10.0f;
-                SetSoundVolume(sounds.point, volumeFraction);
-                SetSoundVolume(sounds.gameover, volumeFraction);
-                for (int i = 0; i < 4; i++)
-                    SetSoundVolume(sounds.lostLife[i], volumeFraction);
-                for (int i = 0; i < 2; i++)
-                    SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
             }
             else
             {
@@ -244,14 +231,38 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 if (state.selectedMenuIndex == OPT_DIFFICULTY)
                     state.difficultyLevel = (state.difficultyLevel - 1 + 3) % 3;
                 else
+                {
                     state.volumeLevel = (state.volumeLevel - 1 + 11) % 11;
+                    if (state.soundsLoaded)
+                    {
+                        float volumeFraction = state.volumeLevel / 10.0f;
+                        SetSoundVolume(sounds.point, volumeFraction);
+                        SetSoundVolume(sounds.gameover, volumeFraction);
+                        for (int i = 0; i < 4; i++)
+                            SetSoundVolume(sounds.lostLife[i], volumeFraction);
+                        for (int i = 0; i < 2; i++)
+                            SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
+                    }
+                }
             }
             if (input.right)
             {
                 if (state.selectedMenuIndex == OPT_DIFFICULTY)
                     state.difficultyLevel = (state.difficultyLevel + 1) % 3;
                 else
+                {
                     state.volumeLevel = (state.volumeLevel + 1) % 11;
+                    if (state.soundsLoaded)
+                    {
+                        float volumeFraction = state.volumeLevel / 10.0f;
+                        SetSoundVolume(sounds.point, volumeFraction);
+                        SetSoundVolume(sounds.gameover, volumeFraction);
+                        for (int i = 0; i < 4; i++)
+                            SetSoundVolume(sounds.lostLife[i], volumeFraction);
+                        for (int i = 0; i < 2; i++)
+                            SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
+                    }
+                }
             }
             if (input.action)
                 state.isEditing = false;
@@ -262,7 +273,19 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 if (hovered == OPT_DIFFICULTY)
                     state.difficultyLevel = (state.difficultyLevel + 1) % 3;
                 else if (hovered == OPT_VOLUME)
+                {
                     state.volumeLevel = (state.volumeLevel + 1) % 11;
+                    if (state.soundsLoaded)
+                    {
+                        float volumeFraction = state.volumeLevel / 10.0f;
+                        SetSoundVolume(sounds.point, volumeFraction);
+                        SetSoundVolume(sounds.gameover, volumeFraction);
+                        for (int i = 0; i < 4; i++)
+                            SetSoundVolume(sounds.lostLife[i], volumeFraction);
+                        for (int i = 0; i < 2; i++)
+                            SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
+                    }
+                }
             }
             else if (pointerAction)
             {
@@ -308,7 +331,19 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 if (hovered == OPT_DIFFICULTY)
                     state.difficultyLevel = (state.difficultyLevel + 1) % 3;
                 else if (hovered == OPT_VOLUME)
+                {
                     state.volumeLevel = (state.volumeLevel + 1) % 11;
+                    if (state.soundsLoaded)
+                    {
+                        float volumeFraction = state.volumeLevel / 10.0f;
+                        SetSoundVolume(sounds.point, volumeFraction);
+                        SetSoundVolume(sounds.gameover, volumeFraction);
+                        for (int i = 0; i < 4; i++)
+                            SetSoundVolume(sounds.lostLife[i], volumeFraction);
+                        for (int i = 0; i < 2; i++)
+                            SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
+                    }
+                }
                 else if (hovered == OPT_BACK)
                 {
                     state.phase = PHASE_MENU;
@@ -379,13 +414,6 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 if (hovered == GO_RETRY)
                 {
                     LaunchGame(state, screenWidth);
-                    float volumeFraction = state.volumeLevel / 10.0f;
-                    SetSoundVolume(sounds.point, volumeFraction);
-                    SetSoundVolume(sounds.gameover, volumeFraction);
-                    for (int i = 0; i < 4; i++)
-                        SetSoundVolume(sounds.lostLife[i], volumeFraction);
-                    for (int i = 0; i < 2; i++)
-                        SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
                 }
                 else
                 {
@@ -399,13 +427,6 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
             if (state.selectedMenuIndex == GO_RETRY)
             {
                 LaunchGame(state, screenWidth);
-                float volumeFraction = state.volumeLevel / 10.0f;
-                SetSoundVolume(sounds.point, volumeFraction);
-                SetSoundVolume(sounds.gameover, volumeFraction);
-                for (int i = 0; i < 4; i++)
-                    SetSoundVolume(sounds.lostLife[i], volumeFraction);
-                for (int i = 0; i < 2; i++)
-                    SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
             }
             else
             {
@@ -418,12 +439,12 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
     if (state.hopRemainingTime > 0.0f)
         state.hopRemainingTime -= deltaTime;
 
-    if (input.left || input.pointerClicked)
+    if (input.left)
     {
         state.columnIndex = (state.columnIndex - 1 + NUM_COLORS) % NUM_COLORS;
         state.hopRemainingTime = HOP_DURATION;
     }
-    if (input.right || input.pointerRightClicked)
+    if (input.right)
     {
         state.columnIndex = (state.columnIndex + 1) % NUM_COLORS;
         state.hopRemainingTime = HOP_DURATION;
@@ -464,7 +485,7 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
         if (state.passedColumn == state.targetColorIndex)
         {
             state.score++;
-            PlaySound(sounds.point);
+            if (state.soundsLoaded) PlaySound(sounds.point);
             int previousColorIndex = state.targetColorIndex;
             int minTarget = std::max(0, state.columnIndex - 3);
             int maxTarget = std::min(NUM_COLORS - 1, state.columnIndex + 3);
@@ -489,16 +510,16 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
             if (lostLifeIndex == state.lastLostLifeIndex)
                 lostLifeIndex = (lostLifeIndex + 1) % 4;
             state.lastLostLifeIndex = lostLifeIndex;
-            PlaySound(sounds.lostLife[lostLifeIndex]);
+            if (state.soundsLoaded) PlaySound(sounds.lostLife[lostLifeIndex]);
             if (state.lives <= 0)
             {
                 state.phase = PHASE_GAMEOVER;
                 state.goTimer = 0.0f;
                 state.goElapsed = 0.0f;
                 state.goStage = 0;
-                PlaySound(sounds.gameover);
+                if (state.soundsLoaded) PlaySound(sounds.gameover);
                 if (state.score < 3)
-                    PlaySound(sounds.gameoverOnLessThan3[GetRandomValue(0, 1)]);
+                    if (state.soundsLoaded) PlaySound(sounds.gameoverOnLessThan3[GetRandomValue(0, 1)]);
                 return;
             }
         }

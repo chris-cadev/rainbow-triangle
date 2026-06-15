@@ -15,7 +15,8 @@ int main()
 
     int maxMonitorWidth = GetMonitorWidth(GetCurrentMonitor());
 
-    SoundBank sounds = LoadAllSounds();
+    SoundBank sounds = {};
+    bool soundsLoaded = false;
 
     GameState state;
     InitGame(state);
@@ -46,6 +47,27 @@ int main()
         int innerHeight = screenHeight;
 
         InputState input = GetInput();
+
+        if (!soundsLoaded)
+        {
+            if (input.action || input.left || input.right ||
+                input.pointerClicked || input.pointerRightClicked)
+            {
+                sounds = LoadAllSounds();
+                {
+                    float volumeFraction = state.volumeLevel / 10.0f;
+                    SetSoundVolume(sounds.point, volumeFraction);
+                    SetSoundVolume(sounds.gameover, volumeFraction);
+                    for (int i = 0; i < 4; i++)
+                        SetSoundVolume(sounds.lostLife[i], volumeFraction);
+                    for (int i = 0; i < 2; i++)
+                        SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
+                }
+                state.soundsLoaded = true;
+                soundsLoaded = true;
+            }
+        }
+
         UpdateGame(state, input, innerWidth, innerHeight, deltaTime, sounds);
 
         BeginDrawing();
@@ -54,7 +76,8 @@ int main()
         EndDrawing();
     }
 
-    UnloadAllSounds(sounds);
+    if (soundsLoaded)
+        UnloadAllSounds(sounds);
     CloseAudioDevice();
     CloseWindow();
     return 0;

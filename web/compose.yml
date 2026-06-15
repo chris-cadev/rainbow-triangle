@@ -11,8 +11,6 @@ services:
   cloudflare:
     image: cloudflare/cloudflared:2026.6.0
     volumes:
-      - ./.cloudflare/${TUNNEL_ID:-default}.json:/home/nonroot/.cloudflared/credentials.json:ro
-      - ./.cloudflare/cert.pem:/home/nonroot/.cloudflared/cert.pem:ro
-      - ./.cloudflare/config.yml:/home/nonroot/.cloudflared/config.yml:ro
+      - ./.cloudflare:/home/nonroot/.cloudflared
     restart: unless-stopped
-    command: tunnel run app_tunnel
+    command: tunnel run ${TUNNEL_ID:-default}
