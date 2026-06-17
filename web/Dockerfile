@@ -1,5 +1,5 @@
 # Stage 1: Build WebAssembly
-FROM emscripten/emsdk:latest AS wasm-builder
+FROM emscripten/emsdk:3.1.39 AS wasm-builder
 ARG UMAMI_WEBSITE_ID
 RUN apt-get update && apt-get install -y cmake && rm -rf /var/lib/apt/lists/*
 
@@ -16,11 +16,9 @@ RUN mkdir -p /output && \
         src/main.cpp src/render.cpp src/collider.cpp src/input.cpp src/state.cpp \
         -lraylib \
         -s USE_GLFW=3 -s WASM=1 -s ASYNCIFY \
-        -s GL_ENABLE_GET_PROC_ADDRESS=1 \
         -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 \
         -s FORCE_FILESYSTEM=1 -s TOTAL_MEMORY=67108864 \
         -s ALLOW_MEMORY_GROWTH=1 \
-        -s EXPORTED_RUNTIME_METHODS='["ccall","HEAPF32"]' \
         --preload-file src/assets@src/assets \
         --shell-file web/shell.html \
         -o /output/index.html && \
@@ -28,6 +26,7 @@ RUN mkdir -p /output && \
 
 # Stage 2: Serve with Caddy
 FROM caddy:alpine
+RUN apk upgrade --no-cache
 COPY --from=wasm-builder /output/ /usr/share/caddy/
 COPY web/Caddyfile /etc/caddy/Caddyfile
 COPY web/index.css /usr/share/caddy/index.css
