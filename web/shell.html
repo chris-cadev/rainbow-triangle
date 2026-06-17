@@ -20,7 +20,7 @@
 
   <a href="https://github.com/chris-cadev/rainbow-triangle/releases"
      target="_blank" rel="noopener noreferrer"
-     id="download-btn">
+     id="download-btn" data-umami-event="Download">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path d="M8 1v9M4 7l4 4 4-4M2 13v1h12v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
     </svg>
@@ -49,7 +49,10 @@
           JSEvents.lastGamepadState = [];
         }
       }],
-      postRun: [function() { loaderElement.style.display = 'none'; }],
+      postRun: [function() {
+        loaderElement.style.display = 'none';
+        if (typeof umami !== 'undefined') umami.track('Game Loaded');
+      }],
       print: (function() {
         return function(text) {
           console.log(text);
@@ -101,6 +104,7 @@
       Module.setStatus('Exception thrown, see console');
       spinnerElement.style.display = 'none';
       Module.setStatus = function(text) { if (text) Module.printErr('[post-exception] ' + text); };
+      if (typeof umami !== 'undefined') umami.track('Page Error');
     };
   </script>
   {{{ SCRIPT }}}
