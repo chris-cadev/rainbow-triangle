@@ -1,6 +1,6 @@
 # Stage 1: Build WebAssembly
-ARG UMAMI_WEBSITE_ID
 FROM emscripten/emsdk:latest AS wasm-builder
+ARG UMAMI_WEBSITE_ID
 RUN apt-get update && apt-get install -y cmake && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /game
