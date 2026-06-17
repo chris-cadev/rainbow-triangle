@@ -100,11 +100,25 @@
 
     Module.setStatus('Downloading...');
 
+    var loadTimer = setTimeout(function() {
+      var msg = 'Loading timed out. Check that your browser supports WebAssembly and WebGL 2.0.';
+      Module.setStatus(msg);
+      spinnerElement.style.display = 'none';
+      Module.setStatus = function(text) { if (text) Module.printErr('[timeout] ' + text); };
+    }, 60000);
+
     window.onerror = function() {
+      clearTimeout(loadTimer);
       Module.setStatus('Exception thrown, see console');
       spinnerElement.style.display = 'none';
       Module.setStatus = function(text) { if (text) Module.printErr('[post-exception] ' + text); };
       if (typeof umami !== 'undefined') umami.track('Page Error');
+    };
+
+    var origOnAbort = Module.onAbort;
+    Module.onAbort = function() {
+      clearTimeout(loadTimer);
+      if (origOnAbort) origOnAbort();
     };
   </script>
   {{{ SCRIPT }}}

@@ -19,6 +19,7 @@ RUN mkdir -p /output && \
         -s GL_ENABLE_GET_PROC_ADDRESS=1 \
         -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 \
         -s FORCE_FILESYSTEM=1 -s TOTAL_MEMORY=67108864 \
+        -s ALLOW_MEMORY_GROWTH=1 \
         -s EXPORTED_RUNTIME_METHODS='["ccall","HEAPF32"]' \
         --preload-file src/assets@src/assets \
         --shell-file web/shell.html \
