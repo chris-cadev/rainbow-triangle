@@ -43,7 +43,11 @@
     var loaderElement = document.querySelector('#loader');
 
     var Module = {
-      preRun: [],
+      preRun: [function() {
+        if (typeof JSEvents !== 'undefined' && !JSEvents.lastGamepadState) {
+          JSEvents.lastGamepadState = [];
+        }
+      }],
       postRun: [function() { loaderElement.style.display = 'none'; }],
       print: (function() {
         return function(text) {

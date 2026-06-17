@@ -113,7 +113,7 @@ WEB_ASSETS     := src/assets
 
 EM_LDFLAGS = \
 	-lraylib \
-	-s USE_GLFW=3 \
+	--use-port=contrib.glfw3:disableJoystick=true \
 	-s WASM=1 \
 	-s ASYNCIFY \
 	-s GL_ENABLE_GET_PROC_ADDRESS=1 \
