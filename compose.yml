@@ -1,8 +1,7 @@
-name: rainbow-triangle-web
+name: rainbow-triangle
 services:
-  server:
+  web:
     build:
-      context: ../
       dockerfile: web/Dockerfile
       args:
         UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
@@ -13,6 +12,6 @@ services:
   cloudflare:
     image: cloudflare/cloudflared:2026.6.0
     volumes:
-      - ./.cloudflare:/home/nonroot/.cloudflared
+      - ./web/.cloudflare:/home/nonroot/.cloudflared
     restart: unless-stopped
     command: tunnel run ${TUNNEL_ID:-default}

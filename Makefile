@@ -115,19 +115,33 @@ EM_LDFLAGS = \
 	-lraylib \
 	-sUSE_GLFW=3 \
 	-sWASM=1 \
-	-sASYNCIFY \
 	-sMIN_WEBGL_VERSION=2 \
 	-sMAX_WEBGL_VERSION=2 \
 	-sFORCE_FILESYSTEM=1 \
-	-sTOTAL_MEMORY=67108864 \
+	-sINITIAL_MEMORY=67108864 \
 	-sALLOW_MEMORY_GROWTH=1 \
+	-sASYNCIFY \
+	-sSTACK_SIZE=1048576 \
 	--preload-file $(WEB_ASSETS)@src/assets \
 	--shell-file web/shell.html
 
 .PHONY: wasm wasm-release
 
-wasm: CXXFLAGS = -std=c++11 -Wall -O2 -g -Isrc -I$(RAYLIB_INC_WASM)
-wasm: LDFLAGS  = -L$(RAYLIB_WASM)/raylib
+wasm: CXXFLAGS = \
+	-std=c++11 \
+	-Wall \
+	-O0 \
+	-g \
+	-Isrc \
+	-I$(RAYLIB_INC_WASM)
+
+wasm: LDFLAGS = \
+	-L$(RAYLIB_WASM)/raylib \
+	-g \
+	-gsource-map \
+	--profiling-funcs \
+	-sASSERTIONS=2 \
+	-sSTACK_OVERFLOW_CHECK=2
 wasm: $(RAYLIB_LIB_WASM) $(WEB_OUT)
 
 wasm-release: CXXFLAGS = -std=c++11 -Wall -Os -flto -DNDEBUG -Isrc -I$(RAYLIB_INC_WASM)
@@ -137,11 +151,17 @@ wasm-release: $(RAYLIB_LIB_WASM) $(WEB_OUT)
 $(WEB_OUT): $(WEB_OBJ)
 	$(EMXX) -o $@ $(filter %.o,$^) $(LDFLAGS) $(EM_LDFLAGS)
 
-web/%.o: web/%.cpp src/sounds.h src/colors.h src/constants.h src/render.h src/collider.h src/input.h src/state.h src/config.h
+web/%.o: src/%.cpp src/sounds.h src/colors.h src/constants.h src/render.h src/collider.h src/input.h src/state.h src/config.h
 	$(EMXX) $(CXXFLAGS) -c $< -o $@
 
 $(RAYLIB_LIB_WASM):
-	$(EMCMAKE) cmake -S $(RAYLIB_DIR) -B $(RAYLIB_WASM) -DPLATFORM=Web -DBUILD_EXAMPLES=OFF
+	$(EMCMAKE) cmake \
+		-S $(RAYLIB_DIR) \
+		-B $(RAYLIB_WASM) \
+		-DPLATFORM=Web \
+		-DBUILD_EXAMPLES=OFF \
+		-DCMAKE_C_FLAGS="-sASYNCIFY" \
+		-DCMAKE_CXX_FLAGS="-sASYNCIFY"
 	cmake --build $(RAYLIB_WASM)
 
 clean-wasm:
@@ -151,6 +171,9 @@ clean-wasm:
 deploy-release-web:
 	@test -f web/.env || { echo "Missing web/.env — copy from web/example.env"; exit 1; }
 	cd web && UMAMI_WEBSITE_ID=$$(grep UMAMI_WEBSITE_ID .env | cut -d= -f2) docker compose up --build -d
+dev:
+	@test -f web/.env || { echo "Missing web/.env — copy from web/example.env"; exit 1; }
+	cd web && UMAMI_WEBSITE_ID=$$(grep UMAMI_WEBSITE_ID .env | cut -d= -f2) docker compose up --build -d web
 
 clean:
 	-$(RM) $(OBJ_PATHS)
