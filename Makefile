@@ -169,11 +169,11 @@ clean-wasm:
 	$(call RMDIR,$(RAYLIB_WASM))
 
 deploy-release-web:
-	@test -f web/.env || { echo "Missing web/.env — copy from web/example.env"; exit 1; }
-	cd web && UMAMI_WEBSITE_ID=$$(grep UMAMI_WEBSITE_ID .env | cut -d= -f2) docker compose up --build -d
+	@test -f .env || { echo "Missing .env — copy from example.env"; exit 1; }
+	UMAMI_WEBSITE_ID=$$(grep UMAMI_WEBSITE_ID .env | cut -d= -f2) docker compose up --build -d
 dev:
-	@test -f web/.env || { echo "Missing web/.env — copy from web/example.env"; exit 1; }
-	cd web && UMAMI_WEBSITE_ID=$$(grep UMAMI_WEBSITE_ID .env | cut -d= -f2) docker compose up --build -d web
+	@test -f .env || { echo "Missing .env — copy from example.env"; exit 1; }
+	UMAMI_WEBSITE_ID=$$(grep UMAMI_WEBSITE_ID .env | cut -d= -f2) docker compose up --build -d web
 
 clean:
 	-$(RM) $(OBJ_PATHS)
