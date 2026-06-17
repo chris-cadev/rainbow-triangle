@@ -13,8 +13,28 @@
 
 int main()
 {
+    int initialWidth = INITIAL_WIDTH;
+    int initialHeight = INITIAL_WIDTH * ASPECT_DIVISOR;
+
+#if defined(__EMSCRIPTEN__)
+    {
+        int vw = EM_ASM_INT({ return window.innerWidth; });
+        int vh = EM_ASM_INT({ return window.innerHeight; });
+        if (vw > 0 && vh > 0) {
+            int h = vw * ASPECT_DIVISOR;
+            if (h <= vh) {
+                initialWidth = vw;
+                initialHeight = h;
+            } else {
+                initialHeight = vh;
+                initialWidth = vh / ASPECT_DIVISOR;
+            }
+        }
+    }
+#endif
+
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(INITIAL_WIDTH, INITIAL_WIDTH * ASPECT_DIVISOR, "Rainbow Triangle");
+    InitWindow(initialWidth, initialHeight, "Rainbow Triangle");
     InitAudioDevice();
     #ifdef __EMSCRIPTEN__
     {

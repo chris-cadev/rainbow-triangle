@@ -81,7 +81,10 @@
           text = m[1];
           spinnerElement.style.display = '';
         } else {
-          if (!text) spinnerElement.style.display = 'none';
+          if (!text) {
+            spinnerElement.style.display = 'none';
+            loaderElement.style.display = 'none';
+          }
         }
         statusElement.innerHTML = text;
       },
