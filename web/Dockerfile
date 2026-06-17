@@ -16,6 +16,7 @@ RUN mkdir -p /output && \
         src/main.cpp src/render.cpp src/collider.cpp src/input.cpp src/state.cpp \
         -lraylib \
         --use-port=contrib.glfw3:disableJoystick=true -s WASM=1 -s ASYNCIFY \
+        -s AUDIO_WORKLET=1 -s WASM_WORKERS=1 \
         -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=4 \
         -s GL_ENABLE_GET_PROC_ADDRESS=1 \
         -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 \
