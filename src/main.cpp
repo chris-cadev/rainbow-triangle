@@ -5,6 +5,7 @@
 #include "state.h"
 #include "input.h"
 #include "sounds.h"
+#include "config.h"
 
 int main()
 {
@@ -20,6 +21,10 @@ int main()
 
     GameState state;
     InitGame(state);
+    state.soundsLoaded = false;
+    LoadConfig(state);
+
+    bool musicLoaded = false;
 
     while (!WindowShouldClose())
     {
@@ -58,14 +63,41 @@ int main()
                     float volumeFraction = state.volumeLevel / 10.0f;
                     SetSoundVolume(sounds.point, volumeFraction);
                     SetSoundVolume(sounds.gameover, volumeFraction);
-                    for (int i = 0; i < 4; i++)
+                    for (int i = 0; i < NUM_LOST_LIFE_SOUNDS; i++)
                         SetSoundVolume(sounds.lostLife[i], volumeFraction);
-                    for (int i = 0; i < 2; i++)
+                    for (int i = 0; i < NUM_GAMEOVER_ON_LESS_THAN_3_SOUNDS; i++)
                         SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
                 }
+                state.gameMusic = LoadMusicStream(bgmMusic);
+                state.gameMusic.looping = true;
+                PlayMusicStream(state.gameMusic);
+                musicLoaded = true;
                 state.soundsLoaded = true;
                 soundsLoaded = true;
             }
+        }
+
+        if (musicLoaded)
+        {
+            float pitch = 0.8f;
+            if (state.phase == PHASE_PLAYING)
+            {
+                pitch = 0.8f + (state.score / 100.0f);
+                if (pitch > 1.5f) pitch = 1.5f;
+                ResumeMusicStream(state.gameMusic);
+            }
+            else if (state.phase == PHASE_GAMEOVER)
+            {
+                PauseMusicStream(state.gameMusic);
+            }
+            else
+            {
+                ResumeMusicStream(state.gameMusic);
+            }
+            SetMusicPitch(state.gameMusic, pitch);
+            float vol = state.musicEnabled ? (state.musicLevel / 10.0f) : 0.0f;
+            SetMusicVolume(state.gameMusic, vol);
+            UpdateMusicStream(state.gameMusic);
         }
 
         UpdateGame(state, input, innerWidth, innerHeight, deltaTime, sounds);
@@ -76,8 +108,11 @@ int main()
         EndDrawing();
     }
 
+    if (musicLoaded)
+        UnloadMusicStream(state.gameMusic);
     if (soundsLoaded)
         UnloadAllSounds(sounds);
+    SaveConfig(state);
     CloseAudioDevice();
     CloseWindow();
     return 0;

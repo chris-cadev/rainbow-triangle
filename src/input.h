@@ -5,8 +5,10 @@ struct InputState
 {
     bool left;
     bool right;
+    bool up;
+    bool down;
     bool action;
-    Vector2 pointerPos;
+    Vector2 pointerPosition;
     bool pointerClicked;
     bool pointerRightClicked;
 };

@@ -84,7 +84,7 @@ release: clean $(RAYLIB_LIB_REL) $(TARGET)
 $(TARGET): $(OBJ)
 	$(CXX) -o $@ $(filter %.o,$^) $(LDFLAGS) $(LDLIBS)
 
-src/%.o: src/%.cpp src/sounds.h src/colors.h src/constants.h src/render.h src/collider.h src/input.h src/state.h
+src/%.o: src/%.cpp src/sounds.h src/colors.h src/constants.h src/render.h src/collider.h src/input.h src/state.h src/config.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(RAYLIB_LIB_DEV):
@@ -137,7 +137,7 @@ wasm-release: $(RAYLIB_LIB_WASM) $(WEB_OUT)
 $(WEB_OUT): $(WEB_OBJ)
 	$(EMXX) -o $@ $(filter %.o,$^) $(LDFLAGS) $(EM_LDFLAGS)
 
-web/%.o: src/%.cpp src/sounds.h src/colors.h src/constants.h src/render.h src/collider.h src/input.h src/state.h
+web/%.o: web/%.cpp src/sounds.h src/colors.h src/constants.h src/render.h src/collider.h src/input.h src/state.h src/config.h
 	$(EMXX) $(CXXFLAGS) -c $< -o $@
 
 $(RAYLIB_LIB_WASM):

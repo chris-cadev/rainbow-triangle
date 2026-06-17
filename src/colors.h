@@ -10,14 +10,43 @@ constexpr Color colorBlue       = {13, 92, 238, 255};
 constexpr Color colorIndigo     = {138, 18, 218, 255};
 constexpr Color backgroundColor = {40, 40, 50, 255};
 
+inline Color MapToSafeColor(Color color)
+{
+    const Color colors[] = { colorRed, colorOrange, colorYellow, colorGreen, colorCyan, colorBlue, colorIndigo };
+    const Color safeColors[] = {
+        {188, 55, 95, 255},
+        {195, 110, 60, 255},
+        {195, 180, 60, 255},
+        {70, 185, 85, 255},
+        {65, 190, 175, 255},
+        {60, 110, 190, 255},
+        {140, 65, 175, 255}
+    };
+    for (int i = 0; i < 7; i++)
+    {
+        if (color.r == colors[i].r && color.g == colors[i].g && color.b == colors[i].b && color.a == colors[i].a)
+            return safeColors[i];
+    }
+    return color;
+}
+
 inline Color GetRainbowColor(int index)
 {
     const Color colors[] = { colorRed, colorOrange, colorYellow, colorGreen, colorCyan, colorBlue, colorIndigo };
     return colors[index % 7];
 }
 
-inline const char* GetColorName(int index)
+inline Color GetSafeRainbowColor(int index)
 {
-    const char* names[] = { "Red", "Orange", "Yellow", "Green", "Cyan", "Blue", "Indigo" };
-    return names[index % 7];
+    const Color safeColors[] = {
+        {188, 55, 95, 255},
+        {195, 110, 60, 255},
+        {195, 180, 60, 255},
+        {70, 185, 85, 255},
+        {65, 190, 175, 255},
+        {60, 110, 190, 255},
+        {140, 65, 175, 255}
+    };
+    return safeColors[index % 7];
 }
+

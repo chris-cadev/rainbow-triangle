@@ -35,7 +35,7 @@ void DrawMenu(const GameState &state, int screenWidth, int screenHeight)
 
     ClearBackground(backgroundColor);
 
-    const char *title = "RAINBOW TRIANGLE";
+    const char *title = "RAINBOW\nTRIANGLE";
     float titleWidth = MeasureText(title, 60);
     DrawText(title, screenWidth / 2.0f - titleWidth / 2.0f, screenHeight * 0.25f, 60, WHITE);
 
@@ -66,6 +66,9 @@ void DrawOptions(const GameState &state, int screenWidth, int screenHeight)
     {
         OPT_DIFFICULTY,
         OPT_VOLUME,
+        OPT_SAFE_MODE,
+        OPT_MUSIC,
+        OPT_MUSIC_VOLUME,
         OPT_BACK,
         OPT_ITEMS
     };
@@ -74,18 +77,22 @@ void DrawOptions(const GameState &state, int screenWidth, int screenHeight)
 
     const char *title = "OPTIONS";
     float titleWidth = MeasureText(title, 50);
-    DrawText(title, screenWidth / 2.0f - titleWidth / 2.0f, screenHeight * 0.15f, 50, WHITE);
+    DrawText(title, screenWidth / 2.0f - titleWidth / 2.0f, screenHeight * 0.12f, 50, WHITE);
 
     const char *difficultyLabel = TextFormat("Difficulty: %s", DifficultyLabel(state.difficultyLevel));
     const char *volumeLabel = TextFormat("Volume: %d", state.volumeLevel);
+    const char *safeLabel = state.safeMode ? "Safe Mode: On" : "Safe Mode: Off";
+    const char *musicLabel = state.musicEnabled ? "Music: On" : "Music: Off";
+    const char *musicVolLabel = TextFormat("Music Vol: %d", state.musicLevel);
     const char *backLabel = "BACK";
 
-    const char *items[OPT_ITEMS] = {difficultyLabel, volumeLabel, backLabel};
-    float fontSize = 32.0f;
-    float itemSpacing = 50.0f;
+    const char *items[OPT_ITEMS] = {difficultyLabel, volumeLabel, safeLabel, musicLabel, musicVolLabel, backLabel};
+    float fontSize = 28.0f;
+    float itemSpacing = 40.0f;
     float widths[OPT_ITEMS];
-    float cursorX = CenteredStartX(screenWidth, items, OPT_ITEMS, fontSize, itemSpacing, widths);
-    float cursorY = screenHeight * 0.45f;
+    CenteredStartX(screenWidth, items, OPT_ITEMS, fontSize, itemSpacing, widths);
+    float cursorX;
+    float cursorY = screenHeight * 0.35f;
 
     for (int i = 0; i < OPT_ITEMS; i++)
     {
@@ -97,8 +104,9 @@ void DrawOptions(const GameState &state, int screenWidth, int screenHeight)
         else
             textColor = WHITE;
 
+        cursorX = screenWidth / 2.0f - widths[i] / 2.0f;
         DrawText(items[i], cursorX, cursorY, fontSize, textColor);
-        cursorX += widths[i] + itemSpacing;
+        cursorY += fontSize + itemSpacing;
     }
 
     const char *hint;
@@ -111,6 +119,46 @@ void DrawOptions(const GameState &state, int screenWidth, int screenHeight)
     DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.75f, 18, GRAY);
 
     return;
+}
+
+void DrawWarning(const GameState &state, int screenWidth, int screenHeight)
+{
+    ClearBackground(backgroundColor);
+
+    DrawRectangle(0, 0, screenWidth, screenHeight, {0, 0, 0, 200});
+
+    const char *lines[] = {
+        "PRECAUTION",
+        "This game contains visual effects",
+        "and color changes that may affect",
+        "people with photosensitive epilepsy."
+    };
+    float y = screenHeight * 0.2f;
+    for (int i = 0; i < 3; i++)
+    {
+        float w = MeasureText(lines[i], i == 0 ? 40 : 20);
+        DrawText(lines[i], screenWidth / 2.0f - w / 2.0f, y, i == 0 ? 40 : 20, WHITE);
+        y += i == 0 ? 50 : 30;
+    }
+
+    enum { WARN_CONTINUE, WARN_SAFE, WARN_ITEMS };
+    const char *warnItems[WARN_ITEMS] = {"Continue", "Activate Safe Mode"};
+    float fontSize = 28.0f;
+    float itemSpacing = 60.0f;
+    float widths[WARN_ITEMS];
+    float cursorX = CenteredStartX(screenWidth, warnItems, WARN_ITEMS, fontSize, itemSpacing, widths);
+    float cursorY = screenHeight * 0.6f;
+
+    for (int i = 0; i < WARN_ITEMS; i++)
+    {
+        Color textColor = (i == state.warningSelectedIndex) ? YELLOW : WHITE;
+        DrawText(warnItems[i], cursorX, cursorY, fontSize, textColor);
+        cursorX += widths[i] + itemSpacing;
+    }
+
+    const char *hint = "Left/Right: navigate    Click/Space/Enter: select";
+    float hintWidth = MeasureText(hint, 18);
+    DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.75f, 18, GRAY);
 }
 
 void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
@@ -148,7 +196,7 @@ void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
         }
     }
 
-    const char *message = "GAME OVER";
+    const char *message = "GAME\nOVER";
     float messageWidth = MeasureText(message, 60);
     DrawText(message, screenWidth / 2.0f - messageWidth / 2.0f, screenHeight * 0.25f, 60, WHITE);
 
@@ -204,20 +252,21 @@ void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
 
 void DrawGame(const GameState &state, int screenWidth, int screenHeight)
 {
-    ClearBackground(state.targetBackgroundColor);
+    ClearBackground(state.displayBackgroundColor);
 
     float columnWidth = (float)screenWidth / (float)NUM_COLORS;
 
     for (int i = 0; i < NUM_COLORS; i++)
     {
         Rectangle square = {i * columnWidth, state.wallTopY, columnWidth, columnWidth};
-        DrawRectangleRec(square, GetRainbowColor(i));
+        Color wallColor = state.safeMode ? GetSafeRainbowColor(i) : GetRainbowColor(i);
+        DrawRectangleRec(square, wallColor);
     }
 
     float hopVerticalOffset = 0.0f;
-    if (state.hopRemainingTime > 0.0f)
+    if (state.triangleHopRemainingTime > 0.0f)
     {
-        float hopProgress = state.hopRemainingTime / HOP_DURATION;
+        float hopProgress = state.triangleHopRemainingTime / HOP_DURATION;
         hopVerticalOffset = -HOP_HEIGHT * 4.0f * hopProgress * (1.0f - hopProgress);
     }
 
@@ -249,6 +298,12 @@ void DrawScene(const GameState &state, int screenWidth, int screenHeight)
     if (state.phase == PHASE_OPTIONS)
     {
         DrawOptions(state, screenWidth, screenHeight);
+        return;
+    }
+
+    if (state.phase == PHASE_WARNING)
+    {
+        DrawWarning(state, screenWidth, screenHeight);
         return;
     }
 

@@ -1,6 +1,8 @@
 #pragma once
 #include "raylib.h"
 
+static const char* const bgmMusic   = "src/assets/music.ogg";
+
 static const char* const sfxGameover = "src/assets/gameover.mp3";
 static const char* const sfxPoint    = "src/assets/point.mp3";
 

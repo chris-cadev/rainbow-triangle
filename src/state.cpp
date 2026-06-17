@@ -3,34 +3,44 @@
 #include "state.h"
 #include "colors.h"
 #include "constants.h"
+#include "config.h"
 
 static float ColumnWidth(int screenWidth)
 {
     return (float)screenWidth / (float)NUM_COLORS;
 }
 
-static float MenuCursorX(int screenWidth, const char *items[], int count, float fontSize, float spacing, float *outWidths)
-{
-    float totalWidth = 0.0f;
-    for (int i = 0; i < count; i++)
-    {
-        outWidths[i] = MeasureText(items[i], (int)fontSize);
-        totalWidth += outWidths[i];
-    }
-    totalWidth += spacing * (count - 1);
-    return screenWidth / 2.0f - totalWidth / 2.0f;
-}
-
-static int GetHoveredItem(Vector2 pointer, int screenWidth, const char *items[], int count, float fontSize, float spacing, float cursorY)
+static int GetHoveredItem(Vector2 pointer, int screenWidth, const char *items[], int count, float fontSize, float spacing, float cursorY, bool horizontal = true)
 {
     float widths[8];
-    float cursorX = MenuCursorX(screenWidth, items, count, fontSize, spacing, widths);
     for (int i = 0; i < count; i++)
+        widths[i] = MeasureText(items[i], (int)fontSize);
+
+    if (horizontal)
     {
-        Rectangle rect = { cursorX, cursorY, widths[i], fontSize };
-        if (CheckCollisionPointRec(pointer, rect))
-            return i;
-        cursorX += widths[i] + spacing;
+        float totalWidth = 0.0f;
+        for (int i = 0; i < count; i++)
+            totalWidth += widths[i];
+        totalWidth += spacing * (count - 1);
+        float cursorX = screenWidth / 2.0f - totalWidth / 2.0f;
+        for (int i = 0; i < count; i++)
+        {
+            Rectangle rect = { cursorX, cursorY, widths[i], fontSize };
+            if (CheckCollisionPointRec(pointer, rect))
+                return i;
+            cursorX += widths[i] + spacing;
+        }
+    }
+    else
+    {
+        for (int i = 0; i < count; i++)
+        {
+            float cursorX = screenWidth / 2.0f - widths[i] / 2.0f;
+            Rectangle rect = { cursorX, cursorY, widths[i], fontSize };
+            if (CheckCollisionPointRec(pointer, rect))
+                return i;
+            cursorY += fontSize + spacing;
+        }
     }
     return -1;
 }
@@ -52,7 +62,7 @@ static void ResetGameplayState(GameState &state)
     state.wallTopY = 0.0f;
     state.wallCooldownTimer = 0.0f;
     state.currentSpeed = state.fallSpeed;
-    state.hopRemainingTime = 0.0f;
+    state.triangleHopRemainingTime = 0.0f;
     state.passedColumn = 0;
     state.hasPassedWall = false;
     state.lastLostLifeIndex = -1;
@@ -64,21 +74,46 @@ void InitGame(GameState &state)
     state.fallSpeed = 100.0f;
     state.acceleration  = 200.0f;
     state.targetBackgroundColor = backgroundColor;
+    state.displayBackgroundColor = backgroundColor;
     state.selectedMenuIndex = 0;
     state.difficultyLevel   = 1;
     state.volumeLevel   = 8;
     state.isEditing = false;
-    state.soundsLoaded = false;
+    state.safeMode = false;
+    state.warningShown = false;
+    state.musicEnabled = true;
+    state.musicLevel = 8;
+    state.warningSelectedIndex = 0;
     state.goTimer = 0.0f;
     state.goElapsed = 0.0f;
     state.goStage = 0;
     ResetGameplayState(state);
 }
 
-static float DetRand(unsigned &h)
+/**
+ * Deterministic pseudo-random number generator.
+ *
+ * Uses a linear congruential generator (LCG) to update the input state
+ * and returns the next pseudo-random value normalized to the range [0, 1].
+ *
+ * The state is passed by reference and updated on each call, so repeated
+ * calls with the same initial seed will always produce the same sequence.
+ *
+ * Formula:
+ *     state = state * 1103515245 + 12345
+ *
+ * Notes:
+ * - Fast and deterministic.
+ * - Suitable for simple procedural effects and reproducible simulations.
+ * - Not suitable for cryptographic or high-quality statistical use.
+ *
+ * @param h PRNG state/seed. Updated in place.
+ * @return Pseudo-random floating-point value in the range [0, 1].
+ */
+static float LCGRandomFloat(unsigned& h)
 {
-    h = h * 1103515245 + 12345;
-    return (h & 0x7fffffff) / (float)0x7fffffff;
+    h = h * 1103515245u + 12345u;
+    return (h & 0x7fffffffu) / (float)0x7fffffffu;
 }
 
 static void SpawnGoParticles(GameState &state)
@@ -88,34 +123,34 @@ static void SpawnGoParticles(GameState &state)
     for (int i = 0; i < MAX_GO_PARTICLES; i++)
     {
         auto &p = state.goParticles[i];
-        unsigned h = (unsigned)(i * 31337 + 1337);
+        unsigned h = (unsigned)(i * 31337u + 1337u);
 
-        float r1 = DetRand(h);
-        float r2 = DetRand(h);
+        float r1 = LCGRandomFloat(h);
+        float r2 = LCGRandomFloat(h);
         if (r1 + r2 > 1.0f) { r1 = 1.0f - r1; r2 = 1.0f - r2; }
         p.pos.x = state.player.a.x + (state.player.b.x - state.player.a.x) * r1 + (state.player.c.x - state.player.a.x) * r2;
         p.pos.y = state.player.a.y + (state.player.b.y - state.player.a.y) * r1 + (state.player.c.y - state.player.a.y) * r2;
 
         float dx = p.pos.x - center.x;
         float dy = p.pos.y - center.y;
-        float speed = 50.0f + DetRand(h) * 250.0f;
+        float speed = 50.0f + LCGRandomFloat(h) * 250.0f;
 
         if (dx != 0 || dy != 0)
         {
             float len = sqrtf(dx * dx + dy * dy);
-            p.vel.x = (dx / len) * speed + (DetRand(h) - 0.5f) * 100.0f;
-            p.vel.y = (dy / len) * speed + (DetRand(h) - 0.5f) * 100.0f;
+            p.vel.x = (dx / len) * speed + (LCGRandomFloat(h) - 0.5f) * 100.0f;
+            p.vel.y = (dy / len) * speed + (LCGRandomFloat(h) - 0.5f) * 100.0f;
         }
         else
         {
-            float angle = DetRand(h) * 2.0f * PI;
+            float angle = LCGRandomFloat(h) * 2.0f * PI;
             p.vel = {cosf(angle) * speed, sinf(angle) * speed};
         }
 
-        p.size = 2.0f + DetRand(h) * 6.0f;
-        p.rotation = DetRand(h) * 2.0f * PI;
-        p.rotSpeed = (DetRand(h) - 0.5f) * 8.0f;
-        p.life = 1.5f + DetRand(h) * 1.0f;
+        p.size = 2.0f + LCGRandomFloat(h) * 6.0f;
+        p.rotation = LCGRandomFloat(h) * 2.0f * PI;
+        p.rotSpeed = (LCGRandomFloat(h) - 0.5f) * 8.0f;
+        p.life = 1.5f + LCGRandomFloat(h) * 1.0f;
         p.active = true;
     }
 }
@@ -138,7 +173,7 @@ static void UpdateGoParticles(GameState &state, float deltaTime)
 
 static void LaunchGame(GameState &state, int screenWidth)
 {
-    state.phase = PHASE_PLAY;
+    state.phase = PHASE_PLAYING;
 
     static const float difficultyFallSpeeds[] = {0.075f, 0.125f, 0.1875f};
     static const float difficultyAccelerations[] = {0.15f, 0.25f, 0.375f};
@@ -148,6 +183,8 @@ static void LaunchGame(GameState &state, int screenWidth)
 
     ResetGameplayState(state);
     state.targetBackgroundColor = GetRainbowColor(state.targetColorIndex);
+    state.displayBackgroundColor = state.targetBackgroundColor;
+    SaveConfig(state);
 }
 
 void UpdateGame(GameState &state, InputState input, int screenWidth, int screenHeight, float deltaTime, const SoundBank &sounds)
@@ -166,24 +203,30 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
         if (input.right)
             state.selectedMenuIndex = (state.selectedMenuIndex + 1) % MAIN_ITEMS;
 
-        {
-            const char *items[MAIN_ITEMS] = {"PLAY", "OPTIONS"};
-            int hovered = GetHoveredItem(input.pointerPos, screenWidth, items, MAIN_ITEMS, 36.0f, 80.0f, screenHeight * 0.5f);
-            if (hovered >= 0)
-                state.selectedMenuIndex = hovered;
+        const char *items[MAIN_ITEMS] = {"PLAY", "OPTIONS"};
+        int hovered = GetHoveredItem(input.pointerPosition, screenWidth, items, MAIN_ITEMS, 36.0f, 80.0f, screenHeight * 0.5f);
+        if (hovered >= 0)
+            state.selectedMenuIndex = hovered;
 
-            if (input.pointerClicked && hovered >= 0)
+        if (input.pointerClicked && hovered >= 0)
+        {
+            if (state.selectedMenuIndex == MAIN_PLAY)
             {
-                if (state.selectedMenuIndex == MAIN_PLAY)
+                if (!state.warningShown && !state.safeMode)
                 {
-                    LaunchGame(state, screenWidth);
+                    state.phase = PHASE_WARNING;
+                    state.warningSelectedIndex = 0;
                 }
                 else
                 {
-                    state.phase = PHASE_OPTIONS;
-                    state.selectedMenuIndex = 0;
-                    state.isEditing = false;
+                    LaunchGame(state, screenWidth);
                 }
+            }
+            else
+            {
+                state.phase = PHASE_OPTIONS;
+                state.selectedMenuIndex = 0;
+                state.isEditing = false;
             }
         }
 
@@ -191,7 +234,15 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
         {
             if (state.selectedMenuIndex == MAIN_PLAY)
             {
-                LaunchGame(state, screenWidth);
+                if (!state.warningShown && !state.safeMode)
+                {
+                    state.phase = PHASE_WARNING;
+                    state.warningSelectedIndex = 0;
+                }
+                else
+                {
+                    LaunchGame(state, screenWidth);
+                }
             }
             else
             {
@@ -209,15 +260,21 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
         {
             OPT_DIFFICULTY,
             OPT_VOLUME,
+            OPT_SAFE_MODE,
+            OPT_MUSIC,
+            OPT_MUSIC_VOLUME,
             OPT_BACK,
             OPT_ITEMS
         };
         const char *diffLabel = TextFormat("Difficulty: %s", DifficultyLabel(state.difficultyLevel));
         const char *volLabel = TextFormat("Volume: %d", state.volumeLevel);
+        const char *safeLabel = state.safeMode ? "Safe Mode: On" : "Safe Mode: Off";
+        const char *musicLabel = state.musicEnabled ? "Music: On" : "Music: Off";
+        const char *musicVolLabel = TextFormat("Music Vol: %d", state.musicLevel);
         const char *backLabel = "BACK";
-        const char *optItems[OPT_ITEMS] = {diffLabel, volLabel, backLabel};
+        const char *optItems[OPT_ITEMS] = {diffLabel, volLabel, safeLabel, musicLabel, musicVolLabel, backLabel};
 
-        int hovered = GetHoveredItem(input.pointerPos, screenWidth, optItems, OPT_ITEMS, 32.0f, 50.0f, screenHeight * 0.45f);
+        int hovered = GetHoveredItem(input.pointerPosition, screenWidth, optItems, OPT_ITEMS, 28.0f, 40.0f, screenHeight * 0.35f, false);
         if (!state.isEditing && hovered >= 0)
             state.selectedMenuIndex = hovered;
 
@@ -230,7 +287,11 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
             {
                 if (state.selectedMenuIndex == OPT_DIFFICULTY)
                     state.difficultyLevel = (state.difficultyLevel - 1 + 3) % 3;
-                else
+                else if (state.selectedMenuIndex == OPT_SAFE_MODE)
+                    state.safeMode = !state.safeMode;
+                else if (state.selectedMenuIndex == OPT_MUSIC)
+                    state.musicEnabled = !state.musicEnabled;
+                else if (state.selectedMenuIndex == OPT_VOLUME)
                 {
                     state.volumeLevel = (state.volumeLevel - 1 + 11) % 11;
                     if (state.soundsLoaded)
@@ -238,18 +299,26 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                         float volumeFraction = state.volumeLevel / 10.0f;
                         SetSoundVolume(sounds.point, volumeFraction);
                         SetSoundVolume(sounds.gameover, volumeFraction);
-                        for (int i = 0; i < 4; i++)
+                        for (int i = 0; i < NUM_LOST_LIFE_SOUNDS; i++)
                             SetSoundVolume(sounds.lostLife[i], volumeFraction);
-                        for (int i = 0; i < 2; i++)
+                        for (int i = 0; i < NUM_GAMEOVER_ON_LESS_THAN_3_SOUNDS; i++)
                             SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
                     }
+                }
+                else if (state.selectedMenuIndex == OPT_MUSIC_VOLUME)
+                {
+                    state.musicLevel = (state.musicLevel - 1 + 11) % 11;
                 }
             }
             if (input.right)
             {
                 if (state.selectedMenuIndex == OPT_DIFFICULTY)
                     state.difficultyLevel = (state.difficultyLevel + 1) % 3;
-                else
+                else if (state.selectedMenuIndex == OPT_SAFE_MODE)
+                    state.safeMode = !state.safeMode;
+                else if (state.selectedMenuIndex == OPT_MUSIC)
+                    state.musicEnabled = !state.musicEnabled;
+                else if (state.selectedMenuIndex == OPT_VOLUME)
                 {
                     state.volumeLevel = (state.volumeLevel + 1) % 11;
                     if (state.soundsLoaded)
@@ -257,11 +326,15 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                         float volumeFraction = state.volumeLevel / 10.0f;
                         SetSoundVolume(sounds.point, volumeFraction);
                         SetSoundVolume(sounds.gameover, volumeFraction);
-                        for (int i = 0; i < 4; i++)
+                        for (int i = 0; i < NUM_LOST_LIFE_SOUNDS; i++)
                             SetSoundVolume(sounds.lostLife[i], volumeFraction);
-                        for (int i = 0; i < 2; i++)
+                        for (int i = 0; i < NUM_GAMEOVER_ON_LESS_THAN_3_SOUNDS; i++)
                             SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
                     }
+                }
+                else if (state.selectedMenuIndex == OPT_MUSIC_VOLUME)
+                {
+                    state.musicLevel = (state.musicLevel + 1) % 11;
                 }
             }
             if (input.action)
@@ -272,6 +345,10 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 state.selectedMenuIndex = hovered;
                 if (hovered == OPT_DIFFICULTY)
                     state.difficultyLevel = (state.difficultyLevel + 1) % 3;
+                else if (hovered == OPT_SAFE_MODE)
+                    state.safeMode = !state.safeMode;
+                else if (hovered == OPT_MUSIC)
+                    state.musicEnabled = !state.musicEnabled;
                 else if (hovered == OPT_VOLUME)
                 {
                     state.volumeLevel = (state.volumeLevel + 1) % 11;
@@ -280,11 +357,15 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                         float volumeFraction = state.volumeLevel / 10.0f;
                         SetSoundVolume(sounds.point, volumeFraction);
                         SetSoundVolume(sounds.gameover, volumeFraction);
-                        for (int i = 0; i < 4; i++)
+                        for (int i = 0; i < NUM_LOST_LIFE_SOUNDS; i++)
                             SetSoundVolume(sounds.lostLife[i], volumeFraction);
-                        for (int i = 0; i < 2; i++)
+                        for (int i = 0; i < NUM_GAMEOVER_ON_LESS_THAN_3_SOUNDS; i++)
                             SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
                     }
+                }
+                else if (hovered == OPT_MUSIC_VOLUME)
+                {
+                    state.musicLevel = (state.musicLevel + 1) % 11;
                 }
             }
             else if (pointerAction)
@@ -294,10 +375,12 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                     state.phase = PHASE_MENU;
                     state.selectedMenuIndex = 0;
                     state.isEditing = false;
+                    SaveConfig(state);
                 }
                 else if (hovered == state.selectedMenuIndex)
                 {
                     state.isEditing = false;
+                    SaveConfig(state);
                 }
                 else
                 {
@@ -307,9 +390,9 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
         }
         else
         {
-            if (input.left)
+            if (input.up)
                 state.selectedMenuIndex = (state.selectedMenuIndex - 1 + OPT_ITEMS) % OPT_ITEMS;
-            if (input.right)
+            if (input.down)
                 state.selectedMenuIndex = (state.selectedMenuIndex + 1) % OPT_ITEMS;
 
             if (input.action)
@@ -318,6 +401,7 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 {
                     state.phase = PHASE_MENU;
                     state.selectedMenuIndex = 0;
+                    SaveConfig(state);
                 }
                 else
                 {
@@ -330,6 +414,10 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 state.selectedMenuIndex = hovered;
                 if (hovered == OPT_DIFFICULTY)
                     state.difficultyLevel = (state.difficultyLevel + 1) % 3;
+                else if (hovered == OPT_SAFE_MODE)
+                    state.safeMode = !state.safeMode;
+                else if (hovered == OPT_MUSIC)
+                    state.musicEnabled = !state.musicEnabled;
                 else if (hovered == OPT_VOLUME)
                 {
                     state.volumeLevel = (state.volumeLevel + 1) % 11;
@@ -338,16 +426,21 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                         float volumeFraction = state.volumeLevel / 10.0f;
                         SetSoundVolume(sounds.point, volumeFraction);
                         SetSoundVolume(sounds.gameover, volumeFraction);
-                        for (int i = 0; i < 4; i++)
+                        for (int i = 0; i < NUM_LOST_LIFE_SOUNDS; i++)
                             SetSoundVolume(sounds.lostLife[i], volumeFraction);
-                        for (int i = 0; i < 2; i++)
+                        for (int i = 0; i < NUM_GAMEOVER_ON_LESS_THAN_3_SOUNDS; i++)
                             SetSoundVolume(sounds.gameoverOnLessThan3[i], volumeFraction);
                     }
+                }
+                else if (hovered == OPT_MUSIC_VOLUME)
+                {
+                    state.musicLevel = (state.musicLevel + 1) % 11;
                 }
                 else if (hovered == OPT_BACK)
                 {
                     state.phase = PHASE_MENU;
                     state.selectedMenuIndex = 0;
+                    SaveConfig(state);
                 }
             }
             else if (pointerAction)
@@ -356,6 +449,7 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 {
                     state.phase = PHASE_MENU;
                     state.selectedMenuIndex = 0;
+                    SaveConfig(state);
                 }
                 else
                 {
@@ -363,6 +457,26 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                     state.isEditing = true;
                 }
             }
+        }
+        return;
+    }
+
+    if (state.phase == PHASE_WARNING)
+    {
+        enum { WARN_CONTINUE, WARN_SAFE, WARN_ITEMS };
+
+        if (input.left)
+            state.warningSelectedIndex = (state.warningSelectedIndex - 1 + WARN_ITEMS) % WARN_ITEMS;
+        if (input.right)
+            state.warningSelectedIndex = (state.warningSelectedIndex + 1) % WARN_ITEMS;
+
+        if (input.action || input.pointerClicked)
+        {
+            if (state.warningSelectedIndex == WARN_SAFE)
+                state.safeMode = true;
+            state.warningShown = true;
+            SaveConfig(state);
+            LaunchGame(state, screenWidth);
         }
         return;
     }
@@ -405,7 +519,7 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
 
         {
             const char *goItems[GO_ITEMS] = {"RETRY", "MENU"};
-            int hovered = GetHoveredItem(input.pointerPos, screenWidth, goItems, GO_ITEMS, 36.0f, 80.0f, screenHeight * 0.55f);
+            int hovered = GetHoveredItem(input.pointerPosition, screenWidth, goItems, GO_ITEMS, 36.0f, 80.0f, screenHeight * 0.55f);
             if (hovered >= 0)
                 state.selectedMenuIndex = hovered;
 
@@ -436,18 +550,23 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
         return;
     }
 
-    if (state.hopRemainingTime > 0.0f)
-        state.hopRemainingTime -= deltaTime;
+    if (state.safeMode)
+        state.displayBackgroundColor = MapToSafeColor(state.targetBackgroundColor);
+    else
+        state.displayBackgroundColor = state.targetBackgroundColor;
+
+    if (state.triangleHopRemainingTime > 0.0f)
+        state.triangleHopRemainingTime -= deltaTime;
 
     if (input.left)
     {
         state.columnIndex = (state.columnIndex - 1 + NUM_COLORS) % NUM_COLORS;
-        state.hopRemainingTime = HOP_DURATION;
+        state.triangleHopRemainingTime = HOP_DURATION;
     }
     if (input.right)
     {
         state.columnIndex = (state.columnIndex + 1) % NUM_COLORS;
-        state.hopRemainingTime = HOP_DURATION;
+        state.triangleHopRemainingTime = HOP_DURATION;
     }
 
     float columnWidth = ColumnWidth(screenWidth);
@@ -459,7 +578,8 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
     state.player = {
         {centerX, screenHeightFloat - triangleHeight},
         {centerX - halfWidth, screenHeightFloat},
-        {centerX + halfWidth, screenHeightFloat}};
+        {centerX + halfWidth, screenHeightFloat}
+    };
 
     state.currentSpeed += state.acceleration * deltaTime;
     state.wallTopY += state.currentSpeed * screenHeightFloat * deltaTime;
@@ -520,7 +640,7 @@ void UpdateGame(GameState &state, InputState input, int screenWidth, int screenH
                 state.goStage = 0;
                 if (state.soundsLoaded) PlaySound(sounds.gameover);
                 if (state.score < 3)
-                    if (state.soundsLoaded) PlaySound(sounds.gameoverOnLessThan3[GetRandomValue(0, 1)]);
+                    if (state.soundsLoaded) PlaySound(sounds.gameoverOnLessThan3[GetRandomValue(0, NUM_GAMEOVER_ON_LESS_THAN_3_SOUNDS - 1)]);
                 return;
             }
         }

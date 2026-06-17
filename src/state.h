@@ -8,7 +8,8 @@ enum GamePhase
 {
     PHASE_MENU,
     PHASE_OPTIONS,
-    PHASE_PLAY,
+    PHASE_WARNING,
+    PHASE_PLAYING,
     PHASE_GAMEOVER
 };
 
@@ -41,13 +42,20 @@ struct GameState
     float      fallSpeed;
     float      acceleration;
     float      currentSpeed;
-    float      hopRemainingTime;
+    float      triangleHopRemainingTime;
     int        passedColumn;
     bool       hasPassedWall;
     int        selectedMenuIndex;
     int        difficultyLevel;
     int        volumeLevel;
     bool       isEditing;
+    bool       safeMode;
+    Color      displayBackgroundColor;
+    bool       warningShown;
+    bool       musicEnabled;
+    int        musicLevel;
+    int        warningSelectedIndex;
+    Music      gameMusic;
     bool       soundsLoaded;
     int        lastLostLifeIndex;
     float      goTimer;
