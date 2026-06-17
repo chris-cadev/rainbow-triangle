@@ -113,14 +113,14 @@ WEB_ASSETS     := src/assets
 
 EM_LDFLAGS = \
 	-lraylib \
-	-s USE_GLFW=3 \
-	-s WASM=1 \
-	-s ASYNCIFY \
-	-s MIN_WEBGL_VERSION=2 \
-	-s MAX_WEBGL_VERSION=2 \
-	-s FORCE_FILESYSTEM=1 \
-	-s TOTAL_MEMORY=67108864 \
-	-s ALLOW_MEMORY_GROWTH=1 \
+	-sUSE_GLFW=3 \
+	-sWASM=1 \
+	-sASYNCIFY \
+	-sMIN_WEBGL_VERSION=2 \
+	-sMAX_WEBGL_VERSION=2 \
+	-sFORCE_FILESYSTEM=1 \
+	-sTOTAL_MEMORY=67108864 \
+	-sALLOW_MEMORY_GROWTH=1 \
 	--preload-file $(WEB_ASSETS)@src/assets \
 	--shell-file web/shell.html
 
