@@ -39,11 +39,14 @@ int main()
     #ifdef __EMSCRIPTEN__
     {
         EM_ASM({
-            document.addEventListener('keydown', function(e) {
+            function unlockAudio() {
                 if (typeof window.miniaudio !== 'undefined' && window.miniaudio.unlock) {
                     window.miniaudio.unlock();
                 }
-            }, {once: true, capture: true});
+            }
+            document.addEventListener('keydown', unlockAudio, {once: true, capture: true});
+            document.addEventListener('touchstart', unlockAudio, {once: true, capture: true});
+            document.addEventListener('click', unlockAudio, {once: true, capture: true});
         });
     }
     #endif
