@@ -115,11 +115,11 @@ jobs:
 
       - name: Create release and upload assets
         run: |
-          if gh release view v0.0.0 &>/dev/null; then
-            gh release upload v0.0.0 rainbow-triangle-* --clobber
+          if gh release view ${{ github.ref_name }} &>/dev/null; then
+            gh release upload ${{ github.ref_name }} rainbow-triangle-* --clobber
           else
-            gh release create v0.0.0 \
-              --title "v0.0.0" \
+            gh release create ${{ github.ref_name }} \
+              --title "${{ github.ref_name }}" \
               --notes-file RELEASE_NOTES.md \
               rainbow-triangle-*
           fi
