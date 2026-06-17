@@ -115,6 +115,7 @@ EM_LDFLAGS = \
 	-lraylib \
 	-s USE_GLFW=3 \
 	-s WASM=1 \
+	-s ASYNCIFY \
 	-s GL_ENABLE_GET_PROC_ADDRESS=1 \
 	-s MIN_WEBGL_VERSION=2 \
 	-s MAX_WEBGL_VERSION=2 \
