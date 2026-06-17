@@ -1,4 +1,5 @@
 # Stage 1: Build WebAssembly
+ARG UMAMI_WEBSITE_ID
 FROM emscripten/emsdk:latest AS wasm-builder
 RUN apt-get update && apt-get install -y cmake && rm -rf /var/lib/apt/lists/*
 
@@ -23,7 +24,8 @@ RUN mkdir -p /output && \
         -s FORCE_FILESYSTEM=1 -s TOTAL_MEMORY=67108864 \
         --preload-file src/assets@src/assets \
         --shell-file web/shell.html \
-        -o /output/index.html
+        -o /output/index.html && \
+    sed -i "s/__UMAMI_WEBSITE_ID__/${UMAMI_WEBSITE_ID}/g" /output/index.html
 
 # Stage 2: Serve with Caddy
 FROM caddy:alpine
