@@ -17,6 +17,26 @@
     </div>
   </div>
 
+  <a href="https://github.com/chris-cadev/rainbow-triangle/releases"
+     target="_blank" rel="noopener noreferrer"
+     id="download-btn">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1v9M4 7l4 4 4-4M2 13v1h12v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
+    </svg>
+    Download
+  </a>
+  <script>
+    (function() {
+      var isMobileUA = /Mobi|Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini|KAIOS/i.test(navigator.userAgent);
+      var isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+      var isNarrow = window.innerWidth < 1024;
+      if (isMobileUA || (isTouchDevice && isNarrow)) {
+        var el = document.getElementById('download-btn');
+        if (el) el.remove();
+      }
+    })();
+  </script>
+
   <script type='text/javascript'>
     var statusElement = document.querySelector('#status');
     var spinnerElement = document.querySelector('.spinner');

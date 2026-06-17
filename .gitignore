@@ -22,3 +22,7 @@ raylib/build_native/
 raylib/build_wasm/
 raylib/install_native/
 raylib/install_wasm/
+
+# web
+web/.env*
+web/.cloudflare
