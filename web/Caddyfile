@@ -1,7 +1,12 @@
 :80 {
     root * /usr/share/caddy
     encode gzip zstd
+    templates
     file_server
+
+    handle_path /a/* {
+        reverse_proxy https://latitudem2m-analytics.chrislabs.net
+    }
     header {
         Cache-Control "no-cache"
         -Server
