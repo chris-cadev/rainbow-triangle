@@ -113,14 +113,14 @@ WEB_ASSETS     := src/assets
 
 EM_LDFLAGS = \
 	-lraylib \
-	--use-port=contrib.glfw3:disableJoystick=true \
+	-s USE_GLFW=3 \
 	-s WASM=1 \
-	-s ASYNCIFY \
 	-s GL_ENABLE_GET_PROC_ADDRESS=1 \
 	-s MIN_WEBGL_VERSION=2 \
 	-s MAX_WEBGL_VERSION=2 \
 	-s FORCE_FILESYSTEM=1 \
 	-s TOTAL_MEMORY=67108864 \
+	-s EXPORTED_RUNTIME_METHODS='["ccall","HEAPF32"]' \
 	--preload-file $(WEB_ASSETS)@src/assets \
 	--shell-file web/shell.html
 
@@ -145,7 +145,7 @@ $(RAYLIB_LIB_WASM):
 	cmake --build $(RAYLIB_WASM)
 
 clean-wasm:
-	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data web/*.worker.js
+	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data
 	$(call RMDIR,$(RAYLIB_WASM))
 
 deploy-release-web:
@@ -155,6 +155,6 @@ deploy-release-web:
 clean:
 	-$(RM) $(OBJ_PATHS)
 	-$(RM) $(TARGET)
-	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data web/*.worker.js
+	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data
 	$(call RMDIR,$(RAYLIB_BUILD_REL))
 	$(call RMDIR,$(RAYLIB_WASM))

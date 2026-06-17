@@ -15,10 +15,11 @@ RUN mkdir -p /output && \
         -Lraylib/install_wasm/raylib \
         src/main.cpp src/render.cpp src/collider.cpp src/input.cpp src/state.cpp \
         -lraylib \
-        --use-port=contrib.glfw3:disableJoystick=true -s WASM=1 -s ASYNCIFY \
+        -s USE_GLFW=3 -s WASM=1 \
         -s GL_ENABLE_GET_PROC_ADDRESS=1 \
         -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 \
         -s FORCE_FILESYSTEM=1 -s TOTAL_MEMORY=67108864 \
+        -s EXPORTED_RUNTIME_METHODS='["ccall","HEAPF32"]' \
         --preload-file src/assets@src/assets \
         --shell-file web/shell.html \
         -o /output/index.html && \
