@@ -5,16 +5,18 @@ RUN apt-get update && apt-get install -y cmake && rm -rf /var/lib/apt/lists/*
 WORKDIR /game
 COPY . .
 
-RUN emcmake cmake -S raylib -B raylib/install_wasm -DPLATFORM=Web -DBUILD_EXAMPLES=OFF
+RUN emcmake cmake -S raylib -B raylib/install_wasm -DPLATFORM=Web -DBUILD_EXAMPLES=OFF -DCMAKE_C_FLAGS="-DMA_ENABLE_AUDIO_WORKLETS"
 
 RUN cmake --build raylib/install_wasm
 
 RUN mkdir -p /output && \
     em++ -std=c++11 -Os -Isrc -Iraylib/install_wasm/raylib/include \
         -Lraylib/install_wasm/raylib \
+        -DMA_ENABLE_AUDIO_WORKLETS \
         src/main.cpp src/render.cpp src/collider.cpp src/input.cpp src/state.cpp \
         -lraylib \
         --use-port=contrib.glfw3:disableJoystick=true -s WASM=1 -s ASYNCIFY \
+        -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=4 \
         -s GL_ENABLE_GET_PROC_ADDRESS=1 \
         -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 \
         -s FORCE_FILESYSTEM=1 -s TOTAL_MEMORY=67108864 \

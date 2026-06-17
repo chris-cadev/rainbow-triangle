@@ -116,6 +116,8 @@ EM_LDFLAGS = \
 	--use-port=contrib.glfw3:disableJoystick=true \
 	-s WASM=1 \
 	-s ASYNCIFY \
+	-s USE_PTHREADS=1 \
+	-s PTHREAD_POOL_SIZE=4 \
 	-s GL_ENABLE_GET_PROC_ADDRESS=1 \
 	-s MIN_WEBGL_VERSION=2 \
 	-s MAX_WEBGL_VERSION=2 \
@@ -126,11 +128,11 @@ EM_LDFLAGS = \
 
 .PHONY: wasm wasm-release
 
-wasm: CXXFLAGS = -std=c++11 -Wall -O2 -g -Isrc -I$(RAYLIB_INC_WASM)
+wasm: CXXFLAGS = -std=c++11 -Wall -O2 -g -Isrc -I$(RAYLIB_INC_WASM) -DMA_ENABLE_AUDIO_WORKLETS
 wasm: LDFLAGS  = -L$(RAYLIB_WASM)/raylib
 wasm: $(RAYLIB_LIB_WASM) $(WEB_OUT)
 
-wasm-release: CXXFLAGS = -std=c++11 -Wall -Os -flto -DNDEBUG -Isrc -I$(RAYLIB_INC_WASM)
+wasm-release: CXXFLAGS = -std=c++11 -Wall -Os -flto -DNDEBUG -Isrc -I$(RAYLIB_INC_WASM) -DMA_ENABLE_AUDIO_WORKLETS
 wasm-release: LDFLAGS  = -L$(RAYLIB_WASM)/raylib
 wasm-release: $(RAYLIB_LIB_WASM) $(WEB_OUT)
 
@@ -141,16 +143,16 @@ web/%.o: web/%.cpp src/sounds.h src/colors.h src/constants.h src/render.h src/co
 	$(EMXX) $(CXXFLAGS) -c $< -o $@
 
 $(RAYLIB_LIB_WASM):
-	$(EMCMAKE) cmake -S $(RAYLIB_DIR) -B $(RAYLIB_WASM) -DPLATFORM=Web -DBUILD_EXAMPLES=OFF
+	$(EMCMAKE) cmake -S $(RAYLIB_DIR) -B $(RAYLIB_WASM) -DPLATFORM=Web -DBUILD_EXAMPLES=OFF -DCMAKE_C_FLAGS="-DMA_ENABLE_AUDIO_WORKLETS"
 	cmake --build $(RAYLIB_WASM)
 
 clean-wasm:
-	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data
+	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data web/*.worker.js
 	$(call RMDIR,$(RAYLIB_WASM))
 
 clean:
 	-$(RM) $(OBJ_PATHS)
 	-$(RM) $(TARGET)
-	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data
+	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data web/*.worker.js
 	$(call RMDIR,$(RAYLIB_BUILD_REL))
 	$(call RMDIR,$(RAYLIB_WASM))

@@ -7,11 +7,26 @@
 #include "sounds.h"
 #include "config.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
+
 int main()
 {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(INITIAL_WIDTH, INITIAL_WIDTH * ASPECT_DIVISOR, "Rainbow Triangle");
     InitAudioDevice();
+    #ifdef __EMSCRIPTEN__
+    {
+        EM_ASM({
+            document.addEventListener('keydown', function(e) {
+                if (typeof window.miniaudio !== 'undefined' && window.miniaudio.unlock) {
+                    window.miniaudio.unlock();
+                }
+            }, {once: true, capture: true});
+        });
+    }
+    #endif
     SetTargetFPS(TARGET_FPS);
 
     int maxMonitorWidth = GetMonitorWidth(GetCurrentMonitor());
