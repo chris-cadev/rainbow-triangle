@@ -40,7 +40,7 @@ else
   CMAKE_G       :=
 endif
 
-.PHONY: all release clean wasm wasm-release clean-wasm
+.PHONY: all release clean wasm wasm-release clean-wasm deploy-release-web
 
 all: CXXFLAGS = -std=c++11 -Wall -O2 -g -Isrc -I$(RAYLIB_INC)
 all: LDFLAGS  = -L$(RAYLIB_BUILD_DEV)/raylib
@@ -149,6 +149,10 @@ $(RAYLIB_LIB_WASM):
 clean-wasm:
 	-$(RM) web/*.o web/index.html web/index.js web/index.wasm web/*.data web/*.worker.js
 	$(call RMDIR,$(RAYLIB_WASM))
+
+deploy-release-web:
+	@test -f web/.env || { echo "Missing web/.env — copy from web/example.env"; exit 1; }
+	cd web && UMAMI_WEBSITE_ID=$$(grep UMAMI_WEBSITE_ID .env | cut -d= -f2) docker compose up --build -d
 
 clean:
 	-$(RM) $(OBJ_PATHS)
