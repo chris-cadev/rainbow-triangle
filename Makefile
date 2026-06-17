@@ -128,11 +128,11 @@ EM_LDFLAGS = \
 
 .PHONY: wasm wasm-release
 
-wasm: CXXFLAGS = -std=c++11 -Wall -O2 -g -Isrc -I$(RAYLIB_INC_WASM) -DMA_ENABLE_AUDIO_WORKLETS
+wasm: CXXFLAGS = -std=c++11 -Wall -O2 -g -Isrc -I$(RAYLIB_INC_WASM) -s USE_PTHREADS=1 -DMA_ENABLE_AUDIO_WORKLETS
 wasm: LDFLAGS  = -L$(RAYLIB_WASM)/raylib
 wasm: $(RAYLIB_LIB_WASM) $(WEB_OUT)
 
-wasm-release: CXXFLAGS = -std=c++11 -Wall -Os -flto -DNDEBUG -Isrc -I$(RAYLIB_INC_WASM) -DMA_ENABLE_AUDIO_WORKLETS
+wasm-release: CXXFLAGS = -std=c++11 -Wall -Os -flto -DNDEBUG -Isrc -I$(RAYLIB_INC_WASM) -s USE_PTHREADS=1 -DMA_ENABLE_AUDIO_WORKLETS
 wasm-release: LDFLAGS  = -L$(RAYLIB_WASM)/raylib
 wasm-release: $(RAYLIB_LIB_WASM) $(WEB_OUT)
 
@@ -143,7 +143,7 @@ web/%.o: web/%.cpp src/sounds.h src/colors.h src/constants.h src/render.h src/co
 	$(EMXX) $(CXXFLAGS) -c $< -o $@
 
 $(RAYLIB_LIB_WASM):
-	$(EMCMAKE) cmake -S $(RAYLIB_DIR) -B $(RAYLIB_WASM) -DPLATFORM=Web -DBUILD_EXAMPLES=OFF -DCMAKE_C_FLAGS="-DMA_ENABLE_AUDIO_WORKLETS"
+	$(EMCMAKE) cmake -S $(RAYLIB_DIR) -B $(RAYLIB_WASM) -DPLATFORM=Web -DBUILD_EXAMPLES=OFF -DCMAKE_C_FLAGS="-s USE_PTHREADS=1 -DMA_ENABLE_AUDIO_WORKLETS"
 	cmake --build $(RAYLIB_WASM)
 
 clean-wasm:
