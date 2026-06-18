@@ -60,3 +60,4 @@ RUN apk upgrade --no-cache
 COPY --from=wasm-builder /output/ /usr/share/caddy/
 COPY web/Caddyfile /etc/caddy/Caddyfile
 COPY web/index.css /usr/share/caddy/index.css
+COPY web/thumbnail.png /usr/share/caddy/thumbnail.png
