@@ -53,9 +53,9 @@ void DrawMenu(const GameState &state, int screenWidth, int screenHeight)
         cursorX += widths[i] + itemSpacing;
     }
 
-    const char *hint = "Left/Right: navigate    Click/Space/Enter: select";
-    float hintWidth = MeasureText(hint, 18);
-    DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.7f, 18, GRAY);
+    const char *author = "Author: Christian Camacho <chris@chrislabs.net>";
+    float authorWidth = MeasureText(author, 18);
+    DrawText(author, screenWidth / 2.0f - authorWidth / 2.0f, screenHeight * 0.7f, 18, GRAY);
 
     return;
 }
@@ -109,15 +109,6 @@ void DrawOptions(const GameState &state, int screenWidth, int screenHeight)
         cursorY += fontSize + itemSpacing;
     }
 
-    const char *hint;
-    if (state.isEditing)
-        hint = "Left/Right: change    Click/Space/Enter: stop editing";
-    else
-        hint = "Left/Right: navigate    Click/Space/Enter: edit / back";
-
-    float hintWidth = MeasureText(hint, 18);
-    DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.75f, 18, GRAY);
-
     return;
 }
 
@@ -156,9 +147,9 @@ void DrawWarning(const GameState &state, int screenWidth, int screenHeight)
         cursorX += widths[i] + itemSpacing;
     }
 
-    const char *hint = "Left/Right: navigate    Click/Space/Enter: select";
-    float hintWidth = MeasureText(hint, 18);
-    DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.75f, 18, GRAY);
+    const char *author = "Left/Right: navigate    Click/Space/Enter: select";
+    float authorWidth = MeasureText(author, 18);
+    DrawText(author, screenWidth / 2.0f - authorWidth / 2.0f, screenHeight * 0.75f, 18, GRAY);
 }
 
 void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
@@ -244,9 +235,9 @@ void DrawGameOver(const GameState &state, int screenWidth, int screenHeight)
             cursorX += widths[i] + itemSpacing;
         }
 
-        const char *hint = "Left/Right: navigate    Click/Space/Enter: select";
-        float hintWidth = MeasureText(hint, 18);
-        DrawText(hint, screenWidth / 2.0f - hintWidth / 2.0f, screenHeight * 0.7f, 18, GRAY);
+        const char *author = "Left/Right: navigate    Click/Space/Enter: select";
+        float authorWidth = MeasureText(author, 18);
+        DrawText(author, screenWidth / 2.0f - authorWidth / 2.0f, screenHeight * 0.7f, 18, GRAY);
     }
 }
 
