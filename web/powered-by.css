@@ -1,0 +1,32 @@
+.powered-by {
+  position: absolute;
+  top: 0;
+  z-index: 10;
+  padding: 16px 20px;
+  text-align: center;
+  width: 100%;
+}
+
+.powered-by p {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  font-family: 'Space Grotesk', sans-serif;
+  transition: color 0.2s ease;
+}
+
+.powered-by a {
+  color: rgba(255, 255, 255, 0.25);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.powered-by a:hover {
+  color: #218bf6;
+  background: #fff;
+}
+
+.powered-by strong {
+  font-weight: 700;
+}
